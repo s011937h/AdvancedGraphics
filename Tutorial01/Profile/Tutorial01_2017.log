@@ -1,0 +1,6 @@
+﻿E:\University\dx11\Tutorial01\shader.fx(109,34-54): warning X3206: 'dot': implicit truncation of vector type
+E:\University\dx11\Tutorial01\shader.fx(113,34-71): warning X3206: implicit truncation of vector type
+E:\University\dx11\Tutorial01\shader.fx(225,28-80): warning X3206: 'TangentToWorldSpace': implicit truncation of vector type
+FXC : error X3501: 'main': entrypoint not found
+  
+  compilation failed; no code produced

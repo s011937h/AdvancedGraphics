@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="DDSTextureLoader.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="DrawableGameObject.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="SimpleVertex.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{7223e20c-1371-49bb-97d0-8117b6b97369}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{5c65bb77-486a-4c4e-a1b8-db822f520520}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CLInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </CLInclude>
+    <ClInclude Include="DDSTextureLoader.h" />
+    <ClInclude Include="DrawableGameObject.h" />
+    <ClInclude Include="structures.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="SimpleVertex.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Tutorial01.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\stone.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\conenormal.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\normals.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shader.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+</Project>

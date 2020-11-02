@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>E:\University\dx11\Tutorial01\</FILEPATH>
+      <FILENAME>DDSTextureLoader.cpp</FILENAME>
+      <LINE>1511</LINE>
+      <COLUMN>17</COLUMN>
+    </SFA>
+    <DEFECTCODE>26812</DEFECTCODE>
+    <DESCRIPTION>The enum type 'DirectX::DDS_ALPHA_MODE' is unscoped. Prefer 'enum class' over 'enum' (Enum.3).</DESCRIPTION>
+    <FUNCTION>GetAlphaMode</FUNCTION>
+    <DECORATED>?GetAlphaMode@@YA?AW4DDS_ALPHA_MODE@DirectX@@PBUDDS_HEADER@@@Z</DECORATED>
+    <FUNCLINE>1504</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+</DEFECTS>

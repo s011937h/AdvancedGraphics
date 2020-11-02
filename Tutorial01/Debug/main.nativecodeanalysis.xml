@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>E:\University\dx11\Tutorial01\</FILEPATH>
+      <FILENAME>structures.h</FILENAME>
+      <LINE>20</LINE>
+      <COLUMN>1</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable '_Material::Padding' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>_Material::{ctor}</FUNCTION>
+    <DECORATED>??0_Material@@QAE@XZ</DECORATED>
+    <FUNCLINE>20</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>_Material::Padding</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>E:\University\dx11\Tutorial01\</FILEPATH>
+      <FILENAME>structures.h</FILENAME>
+      <LINE>61</LINE>
+      <COLUMN>1</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'Light::Padding' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>Light::{ctor}</FUNCTION>
+    <DECORATED>??0Light@@QAE@XZ</DECORATED>
+    <FUNCLINE>61</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>Light::Padding</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>E:\University\dx11\Tutorial01\</FILEPATH>
+      <FILENAME>main.cpp</FILENAME>
+      <LINE>3</LINE>
+      <COLUMN>11</COLUMN>
+    </SFA>
+    <DEFECTCODE>28251</DEFECTCODE>
+    <DESCRIPTION>Inconsistent annotation for 'wWinMain': this instance has no annotations. See c:\program files (x86)\windows kits\10\include\10.0.16299.0\um\winbase.h(922). </DESCRIPTION>
+    <FUNCTION>wWinMain</FUNCTION>
+    <DECORATED>wWinMain@16</DECORATED>
+    <FUNCLINE>3</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+</DEFECTS>

@@ -1,0 +1,5 @@
+﻿  Camera.cpp
+Application.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+Application.obj : error LNK2019: unresolved external symbol "public: __thiscall Camera::Camera(unsigned int,unsigned int,struct DirectX::__vector4,struct DirectX::__vector4,struct DirectX::__vector4,bool)" (??0Camera@@QAE@IIU__vector4@DirectX@@00_N@Z) referenced in function "public: long __thiscall Application::Initialise(struct HINSTANCE__ *,int)" (?Initialise@Application@@QAEJPAUHINSTANCE__@@H@Z)
+Application.obj : error LNK2019: unresolved external symbol "public: void __thiscall Camera::Update(struct DirectX::__vector4,struct DirectX::__vector4,struct DirectX::__vector4,bool)" (?Update@Camera@@QAEXU__vector4@DirectX@@00_N@Z) referenced in function "public: void __thiscall Application::Update(void)" (?Update@Application@@QAEXXZ)
+E:\University\dx11\Debug\Tutorial01.exe : fatal error LNK1120: 2 unresolved externals
