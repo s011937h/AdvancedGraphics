@@ -1,6 +1,7 @@
 #define _XM_NO_INTRINSICS_
 
 #include "Application.h"
+DirectX::XMFLOAT4 g_EyePosition(0.0f, 0, -3, 1.0f);
 
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
@@ -67,10 +68,11 @@ HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
     }
 
     _XValue = 0.0f;
-    _YValue = 1.0f;
-    _ZValue = -4.0f;
-    _camera = new Camera(_WindowWidth, _WindowHeight, XMVectorSet(_XValue - movementVector.x, _YValue, _ZValue - movementVector.z, 0.0f), XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
-    g_EyePosition = _camera->GetPosition();
+    _YValue = 0.0f;
+    _ZValue = -3.0f;
+	_camera = new Camera(_WindowWidth, _WindowHeight, XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
+    //g_EyePosition = _camera->GetPosition();
+    //g_EyePosition = XMFLOAT4(0.0f, 0, -3, 1.0f);
     g_LightPosition = g_EyePosition;
 
     return S_OK;
@@ -637,14 +639,15 @@ void Application::Render()
     light.QuadraticAttenuation = 1;
 
 
-    // set up the light
-    light.Position = g_LightPosition;
-    XMVECTOR LightDirection = XMVectorSet(-g_LightPosition.x, -g_LightPosition.y, -g_LightPosition.z, 0.0f);
-    LightDirection = XMVector3Normalize(LightDirection);
-    XMStoreFloat4(&light.Direction, LightDirection);
+	// set up the light
+	XMFLOAT4 LightPosition(g_EyePosition);
+	light.Position = LightPosition;
+	XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
+	LightDirection = XMVector3Normalize(LightDirection);
+	XMStoreFloat4(&light.Direction, LightDirection);
 
-    LightPropertiesConstantBuffer lightProperties;
-    lightProperties.EyePosition = g_EyePosition;
+	LightPropertiesConstantBuffer lightProperties;
+	lightProperties.EyePosition = LightPosition;
     lightProperties.Lights[0] = light;
     g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
 
@@ -735,7 +738,7 @@ void Application::Update()
         XMStoreFloat3(&newCameraPos, cameraPositionV);*/
     }
     _camera->Update(XMVectorSet(newCameraPos.x, 0.0f, newCameraPos.z + _ZValue, 0.0f), XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
-    g_EyePosition = _camera->GetPosition();
+    //g_EyePosition = _camera->GetPosition();
 }
 
 

@@ -1,3 +1,4 @@
+#define _XM_NO_INTRINSICS_
 #include "Camera.h"
 
 

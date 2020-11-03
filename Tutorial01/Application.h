@@ -78,7 +78,7 @@ private:
 	UINT _WindowHeight;
 	UINT _WindowWidth;
 
-	XMFLOAT4 g_EyePosition;
+	//XMFLOAT4 g_EyePosition;
 	XMFLOAT4 g_LightPosition;
 
 	float _XValue;
