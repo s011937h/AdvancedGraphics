@@ -61,7 +61,6 @@ private:
 	ID3D11SamplerState*		g_pSamplerNormal;
 
 	XMMATRIX                g_World1;
-	XMMATRIX                g_View;
 	XMMATRIX                g_Projection;
 
 	int						g_viewWidth;
@@ -78,8 +77,8 @@ private:
 	UINT _WindowHeight;
 	UINT _WindowWidth;
 
-	//XMFLOAT4 g_EyePosition;
-	XMFLOAT4 g_LightPosition;
+	XMFLOAT4 g_EyePosition;
+	//XMFLOAT4 g_LightPosition;
 
 	float _XValue;
 	float _YValue;

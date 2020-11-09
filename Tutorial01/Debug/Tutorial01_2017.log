@@ -1,7 +1,17 @@
-﻿  Application.cpp
-E:\University\dx11\Tutorial01\Application.cpp(562,13): warning C4189: 'xPos': local variable is initialized but not referenced
-E:\University\dx11\Tutorial01\Application.cpp(563,13): warning C4189: 'yPos': local variable is initialized but not referenced
-  main.cpp
-E:\University\dx11\Tutorial01\main.cpp(8,44): warning C4316: 'Application': object allocated on the heap may not be aligned 16
-  Generating Code...
+﻿  Camera.cpp
+E:\University\dx11\Tutorial01\Camera.cpp(5,98): warning C4100: 'isLookAt': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(5,89): warning C4100: 'up': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(5,76): warning C4100: 'at': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(36,58): warning C4458: declaration of 'roll' hides class member
+E:\University\dx11\Tutorial01\Camera.h(40,8): message : see declaration of 'Camera::roll'
+E:\University\dx11\Tutorial01\Camera.cpp(36,70): warning C4458: declaration of 'pitch' hides class member
+E:\University\dx11\Tutorial01\Camera.h(41,8): message : see declaration of 'Camera::pitch'
+E:\University\dx11\Tutorial01\Camera.cpp(36,83): warning C4458: declaration of 'yaw' hides class member
+E:\University\dx11\Tutorial01\Camera.h(42,8): message : see declaration of 'Camera::yaw'
+E:\University\dx11\Tutorial01\Camera.cpp(36,83): warning C4100: 'yaw': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(36,70): warning C4100: 'pitch': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(36,58): warning C4100: 'roll': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(36,49): warning C4100: 'z': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(36,40): warning C4100: 'y': unreferenced formal parameter
+E:\University\dx11\Tutorial01\Camera.cpp(36,31): warning C4100: 'x': unreferenced formal parameter
   Tutorial01_2017.vcxproj -> E:\University\dx11\Debug\Tutorial01.exe

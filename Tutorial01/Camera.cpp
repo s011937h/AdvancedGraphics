@@ -4,13 +4,12 @@
 
 Camera::Camera(UINT windowWidth, UINT windowHeight, XMVECTOR eye, XMVECTOR at, XMVECTOR up, bool isLookAt)
 {
-	XMStoreFloat4(&_eyeVec, eye);
-	XMStoreFloat4(&_atVec, at);
-	XMStoreFloat4(&_upVec, up);
-	_isLookAt = isLookAt;
 	// Initialize the projection matrix
-	XMStoreFloat4x4(&_projection, XMMatrixPerspectiveFovLH(XM_PIDIV2, windowWidth / (FLOAT)windowHeight, 0.01f, 100.0f));
-	Update(eye, at, up, _isLookAt);
+	XMStoreFloat4x4(&projection, XMMatrixPerspectiveFovLH(XM_PIDIV2, windowWidth / (FLOAT)windowHeight, 0.01f, 100.0f));
+	roll = 0;
+	pitch = 0;
+	yaw = PI;
+	Update(eye, 0, 0);
 }
 
 
@@ -20,19 +19,21 @@ Camera::~Camera()
 }
 
 
-void Camera::Update(XMVECTOR eye, XMVECTOR at, XMVECTOR up, bool isLookAt)
+void Camera::Update(XMVECTOR eye, float mouseDeltaX, float mouseDeltaY)
 {
-	// Initialize the view matrix
-	if (isLookAt)
-	{
-		XMStoreFloat4x4(&_view, XMMatrixLookAtLH(eye, at, up));
-	}
-	else
-	{
-		XMStoreFloat4x4(&_view, XMMatrixLookToLH(eye, at, up));
-	}
+	const float mouseRotationRate = 0.001; //tweak me
+	pitch += mouseDeltaY * mouseRotationRate;
+	yaw += mouseDeltaX * mouseRotationRate;
 
-	XMStoreFloat4(&_position, eye);
-	XMStoreFloat4(&_lookAt, at);
-	XMStoreFloat4(&_up, up);
+	XMStoreFloat4(&position, eye);
+	//XMStoreFloat4(&_lookAt, at);
+	//XMStoreFloat4(&_up, up);
+	XMMATRIX rotation = XMMatrixRotationRollPitchYaw(roll, pitch, yaw);
+	XMMATRIX translation = XMMatrixTranslation(-position.x, -position.y, -position.z);
+	XMStoreFloat4x4(&view, XMMatrixMultiply(rotation, translation)); // could be backwards
+}
+
+void Camera::MoveCamera(float x, float y, float z, float roll, float pitch, float yaw)
+{
+
 }
