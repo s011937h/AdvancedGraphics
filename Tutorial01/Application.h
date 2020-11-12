@@ -27,47 +27,50 @@ using namespace DirectX;
 class Application
 {
 private:
-	HINSTANCE				g_hInst;
-	HWND					g_hWnd;
-	D3D_DRIVER_TYPE			g_driverType;
-	D3D_FEATURE_LEVEL		g_featureLevel;
-	ID3D11Device*			g_pd3dDevice;
-	ID3D11Device1*			g_pd3dDevice1;
-	ID3D11DeviceContext*	g_pImmediateContext;
-	ID3D11DeviceContext1*	g_pImmediateContext1;
-	IDXGISwapChain*			g_pSwapChain;
-	IDXGISwapChain1*		g_pSwapChain1;
-	ID3D11RenderTargetView* g_pRenderTargetView;
-	ID3D11Texture2D*		g_pDepthStencil;
-	ID3D11DepthStencilView* g_pDepthStencilView;
-	ID3D11VertexShader*		g_pVertexShader;
+	HINSTANCE				hInst;
+	HWND					hWnd;
+	D3D_DRIVER_TYPE			driverType;
+	D3D_FEATURE_LEVEL		featureLevel;
+	ID3D11Device* pd3dDevice;
+	ID3D11Device1* pd3dDevice1;
+	ID3D11DeviceContext* pImmediateContext;
+	ID3D11DeviceContext1* pImmediateContext1;
+	IDXGISwapChain* pSwapChain;
+	IDXGISwapChain1* pSwapChain1;
+	ID3D11RenderTargetView* pRenderTargetView;
+	ID3D11Texture2D* pDepthStencil;
+	ID3D11DepthStencilView* pDepthStencilView;
+	ID3D11VertexShader* pVertexShader;
+	ID3D11VertexShader* pParallaxVertexShader;
 
-	ID3D11PixelShader*		g_pPixelShader;
-	ID3D11PixelShader*		g_pPixelShaderSolid;
+	ID3D11PixelShader* pPixelShader;
+	ID3D11PixelShader* pPixelShaderSolid;
+	ID3D11PixelShader* pParallaxPixelShader;
 
-	ID3D11InputLayout*		g_pVertexLayout;
-	ID3D11Buffer*			g_pVertexBuffer;
-	ID3D11Buffer*			g_pIndexBuffer;
+	ID3D11InputLayout* pVertexLayout;
+	ID3D11Buffer* pVertexBuffer;
+	ID3D11Buffer* pIndexBuffer;
 
-	ID3D11Buffer*			g_pConstantBuffer;
-	ID3D11Buffer*			g_pMaterialConstantBuffer;
-	ID3D11Buffer*			g_pLightConstantBuffer;
+	ID3D11Buffer* pConstantBuffer;
+	ID3D11Buffer* pMaterialConstantBuffer;
+	ID3D11Buffer* pLightConstantBuffer;
 
-	ID3D11ShaderResourceView* g_pTextureRV;
-	ID3D11ShaderResourceView* g_pNormalTextureRV;
-	ID3D11ShaderResourceView* g_pParallaxTextureRV;
+	ID3D11ShaderResourceView* pTextureRV;
+	ID3D11ShaderResourceView* pNormalTextureRV;
+	ID3D11ShaderResourceView* pParallaxTextureRV;
+	ID3D11ShaderResourceView* pParallaxColorRV;
+	ID3D11ShaderResourceView* pParallaxDisplacementMapRV;
 
-	ID3D11SamplerState*		g_pSamplerLinear;
-	ID3D11SamplerState*		g_pSamplerNormal;
+	ID3D11SamplerState* pSamplerLinear;
+	ID3D11SamplerState* pSamplerNormal;
 
-	XMMATRIX                g_World1;
-	XMMATRIX                g_View;
-	XMMATRIX                g_Projection;
+	XMMATRIX                world1; //add new world when you add new object
+	XMMATRIX                projection;
 
-	int						g_viewWidth;
-	int						g_viewHeight;
+	int						viewWidth;
+	int						viewHeight;
 
-	DrawableGameObject		g_GameObject;
+	DrawableGameObject		gameObject;
 
 	HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 	HRESULT InitDevice();
@@ -75,17 +78,19 @@ private:
 	HRESULT	InitWorld(int width, int height);
 	void	CleanupDevice();
 
-	UINT _WindowHeight;
-	UINT _WindowWidth;
+	HRESULT CompileAndCreateVertexShader(const WCHAR* shaderFilename, const LPCSTR shaderName, ID3D11VertexShader* vertexShader);
+	HRESULT CompileAndCreatePixelShader(const WCHAR* shaderFilename, const LPCSTR shaderName, ID3D11PixelShader* pixelShader);
 
-	//XMFLOAT4 g_EyePosition;
-	XMFLOAT4 g_LightPosition;
+	UINT windowHeight;
+	UINT windowWidth;
+
+	XMFLOAT4 eyePosition;
 
 	float _XValue;
 	float _YValue;
 	float _ZValue;
 
-	Camera* _camera;
+	Camera* currentCamera;
 	XMFLOAT3 uvf3 = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3 movementVector;
 	XMFLOAT3 newCameraPos;
@@ -95,7 +100,6 @@ private:
 
 
 	/*my code from before below
-	XMFLOAT4X4              _world, _world2, _world3, _world4, _plane, _verticalPlane, _car, _ball, _boost, _verticalPlane2, _verticalPlane3, _verticalPlane4; //add new world when you add new object
 
 	ID3D11DepthStencilView* _depthStencilView;
 	ID3D11Texture2D* _depthStencilBuffer;

@@ -1,46 +1,54 @@
 #define _XM_NO_INTRINSICS_
 
 #include "Application.h"
-DirectX::XMFLOAT4 g_EyePosition(0.0f, 0, -3, 1.0f);
 
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 
+int g_mousePositionX = 0;
+int g_mousePositionY = 0;
+
+int g_mouseDeltaX = 0;
+int g_mouseDeltaY = 0;
+
 Application::Application()
 {
-    g_hInst = nullptr;
-    g_hWnd = nullptr;
-    g_driverType = D3D_DRIVER_TYPE_NULL;
-    g_featureLevel = D3D_FEATURE_LEVEL_11_0;
-    g_pd3dDevice = nullptr;
-    g_pd3dDevice1 = nullptr;
-    g_pImmediateContext = nullptr;
-    g_pImmediateContext1 = nullptr;
-    g_pSwapChain = nullptr;
-    g_pSwapChain1 = nullptr;
-    g_pRenderTargetView = nullptr;
-    g_pDepthStencil = nullptr;
-    g_pDepthStencilView = nullptr;
-    g_pVertexShader = nullptr;
+    hInst = nullptr;
+    hWnd = nullptr;
+    driverType = D3D_DRIVER_TYPE_NULL;
+    featureLevel = D3D_FEATURE_LEVEL_11_0;
+    pd3dDevice = nullptr;
+    pd3dDevice1 = nullptr;
+    pImmediateContext = nullptr;
+    pImmediateContext1 = nullptr;
+    pSwapChain = nullptr;
+    pSwapChain1 = nullptr;
+    pRenderTargetView = nullptr;
+    pDepthStencil = nullptr;
+    pDepthStencilView = nullptr;
+    pVertexShader = nullptr;
+    pParallaxVertexShader = nullptr;
 
-    g_pPixelShader = nullptr;
-    g_pPixelShaderSolid = nullptr;
+    pPixelShader = nullptr;
+    pPixelShaderSolid = nullptr;
+    pParallaxPixelShader = nullptr;
 
-    g_pVertexLayout = nullptr;
-    g_pVertexBuffer = nullptr;
-    g_pIndexBuffer = nullptr;
+    pVertexLayout = nullptr;
+    pVertexBuffer = nullptr;
+    pIndexBuffer = nullptr;
 
-    g_pConstantBuffer = nullptr;
-    g_pMaterialConstantBuffer = nullptr;
-    g_pLightConstantBuffer = nullptr;
+    pConstantBuffer = nullptr;
+    pMaterialConstantBuffer = nullptr;
+    pLightConstantBuffer = nullptr;
 
-    g_pTextureRV = nullptr;
-    g_pNormalTextureRV = nullptr;
-    g_pParallaxTextureRV = nullptr;
+    pTextureRV = nullptr;
+    pNormalTextureRV = nullptr;
+    pParallaxTextureRV = nullptr;
 
-    g_pSamplerLinear = nullptr;
-    g_pSamplerNormal = nullptr;
+    pSamplerLinear = nullptr;
+    pSamplerNormal = nullptr;
 
-    _camera = nullptr;
+    currentCamera = nullptr;
+    eyePosition = XMFLOAT4(0.0f, 0.0f, -3.0f, 1.0f);
 }
 
 Application::~Application()
@@ -56,9 +64,9 @@ HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
     }
 
     RECT rc;
-    GetClientRect(g_hWnd, &rc);
-    _WindowWidth = rc.right - rc.left;
-    _WindowHeight = rc.bottom - rc.top;
+    GetClientRect(hWnd, &rc);
+    windowWidth = rc.right - rc.left;
+    windowHeight = rc.bottom - rc.top;
 
     if (FAILED(InitDevice()))
     {
@@ -70,10 +78,9 @@ HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
     _XValue = 0.0f;
     _YValue = 0.0f;
     _ZValue = -3.0f;
-	_camera = new Camera(_WindowWidth, _WindowHeight, XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
-    //g_EyePosition = _camera->GetPosition();
-    //g_EyePosition = XMFLOAT4(0.0f, 0, -3, 1.0f);
-    g_LightPosition = g_EyePosition;
+    currentCamera = new Camera(windowWidth, windowHeight, XMVectorSet(_XValue, _YValue, _ZValue, 1.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), false);
+    eyePosition = currentCamera->GetPosition();
+    //g_LightPosition = g_EyePosition;
 
     return S_OK;
 }
@@ -101,21 +108,21 @@ HRESULT Application::InitWindow(HINSTANCE hInstance, int nCmdShow)
         return E_FAIL;
 
     // Create window
-    g_hInst = hInstance;
+    hInst = hInstance;
     RECT rc = { 0, 0, 640, 480 };
 
-    g_viewWidth = 640;
-    g_viewHeight = 480;
+    viewWidth = 640;
+    viewHeight = 480;
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-    g_hWnd = CreateWindow(L"TutorialWindowClass", L"Direct3D 11 Tutorial 5",
+    hWnd = CreateWindow(L"TutorialWindowClass", L"Direct3D 11 Tutorial 5",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
         nullptr);
-    if (!g_hWnd)
+    if (!hWnd)
         return E_FAIL;
 
-    ShowWindow(g_hWnd, nCmdShow);
+    ShowWindow(hWnd, nCmdShow);
 
     return S_OK;
 }
@@ -168,7 +175,7 @@ HRESULT Application::InitDevice()
     HRESULT hr = S_OK;
 
     RECT rc;
-    GetClientRect(g_hWnd, &rc);
+    GetClientRect(hWnd, &rc);
     UINT width = rc.right - rc.left;
     UINT height = rc.bottom - rc.top;
 
@@ -196,15 +203,15 @@ HRESULT Application::InitDevice()
 
     for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++)
     {
-        g_driverType = driverTypes[driverTypeIndex];
-        hr = D3D11CreateDevice(nullptr, g_driverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
-            D3D11_SDK_VERSION, &g_pd3dDevice, &g_featureLevel, &g_pImmediateContext);
+        driverType = driverTypes[driverTypeIndex];
+        hr = D3D11CreateDevice(nullptr, driverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
+            D3D11_SDK_VERSION, &pd3dDevice, &featureLevel, &pImmediateContext);
 
         if (hr == E_INVALIDARG)
         {
             // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
-            hr = D3D11CreateDevice(nullptr, g_driverType, nullptr, createDeviceFlags, &featureLevels[1], numFeatureLevels - 1,
-                D3D11_SDK_VERSION, &g_pd3dDevice, &g_featureLevel, &g_pImmediateContext);
+            hr = D3D11CreateDevice(nullptr, driverType, nullptr, createDeviceFlags, &featureLevels[1], numFeatureLevels - 1,
+                D3D11_SDK_VERSION, &pd3dDevice, &featureLevel, &pImmediateContext);
         }
 
         if (SUCCEEDED(hr))
@@ -217,7 +224,7 @@ HRESULT Application::InitDevice()
     IDXGIFactory1* dxgiFactory = nullptr;
     {
         IDXGIDevice* dxgiDevice = nullptr;
-        hr = g_pd3dDevice->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
+        hr = pd3dDevice->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
         if (SUCCEEDED(hr))
         {
             IDXGIAdapter* adapter = nullptr;
@@ -239,10 +246,10 @@ HRESULT Application::InitDevice()
     if (dxgiFactory2)
     {
         // DirectX 11.1 or later
-        hr = g_pd3dDevice->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void**>(&g_pd3dDevice1));
+        hr = pd3dDevice->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void**>(&pd3dDevice1));
         if (SUCCEEDED(hr))
         {
-            (void)g_pImmediateContext->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&g_pImmediateContext1));
+            (void)pImmediateContext->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&pImmediateContext1));
         }
 
         DXGI_SWAP_CHAIN_DESC1 sd = {};
@@ -254,10 +261,10 @@ HRESULT Application::InitDevice()
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         sd.BufferCount = 1;
 
-        hr = dxgiFactory2->CreateSwapChainForHwnd(g_pd3dDevice, g_hWnd, &sd, nullptr, nullptr, &g_pSwapChain1);
+        hr = dxgiFactory2->CreateSwapChainForHwnd(pd3dDevice, hWnd, &sd, nullptr, nullptr, &pSwapChain1);
         if (SUCCEEDED(hr))
         {
-            hr = g_pSwapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&g_pSwapChain));
+            hr = pSwapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&pSwapChain));
         }
 
         dxgiFactory2->Release();
@@ -273,16 +280,16 @@ HRESULT Application::InitDevice()
         sd.BufferDesc.RefreshRate.Numerator = 60;
         sd.BufferDesc.RefreshRate.Denominator = 1;
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.OutputWindow = g_hWnd;
+        sd.OutputWindow = hWnd;
         sd.SampleDesc.Count = 1;
         sd.SampleDesc.Quality = 0;
         sd.Windowed = TRUE;
 
-        hr = dxgiFactory->CreateSwapChain(g_pd3dDevice, &sd, &g_pSwapChain);
+        hr = dxgiFactory->CreateSwapChain(pd3dDevice, &sd, &pSwapChain);
     }
 
     // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
-    dxgiFactory->MakeWindowAssociation(g_hWnd, DXGI_MWA_NO_ALT_ENTER);
+    dxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
 
     dxgiFactory->Release();
 
@@ -291,11 +298,11 @@ HRESULT Application::InitDevice()
 
     // Create a render target view
     ID3D11Texture2D* pBackBuffer = nullptr;
-    hr = g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
+    hr = pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
     if (FAILED(hr))
         return hr;
 
-    hr = g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_pRenderTargetView);
+    hr = pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &pRenderTargetView);
     pBackBuffer->Release();
     if (FAILED(hr))
         return hr;
@@ -313,7 +320,7 @@ HRESULT Application::InitDevice()
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
-    hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencil);
+    hr = pd3dDevice->CreateTexture2D(&descDepth, nullptr, &pDepthStencil);
     if (FAILED(hr))
         return hr;
 
@@ -322,11 +329,11 @@ HRESULT Application::InitDevice()
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     descDSV.Texture2D.MipSlice = 0;
-    hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencil, &descDSV, &g_pDepthStencilView);
+    hr = pd3dDevice->CreateDepthStencilView(pDepthStencil, &descDSV, &pDepthStencilView);
     if (FAILED(hr))
         return hr;
 
-    g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+    pImmediateContext->OMSetRenderTargets(1, &pRenderTargetView, pDepthStencilView);
 
     // Setup the viewport
     D3D11_VIEWPORT vp;
@@ -336,7 +343,7 @@ HRESULT Application::InitDevice()
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
-    g_pImmediateContext->RSSetViewports(1, &vp);
+    pImmediateContext->RSSetViewports(1, &vp);
 
     hr = InitMesh();
     if (FAILED(hr))
@@ -354,7 +361,7 @@ HRESULT Application::InitDevice()
         return hr;
     }
 
-    hr = g_GameObject.initMesh(g_pd3dDevice, g_pImmediateContext);
+    hr = gameObject.initMesh(pd3dDevice, pImmediateContext);
     if (FAILED(hr))
         return hr;
 
@@ -367,7 +374,14 @@ HRESULT Application::InitDevice()
 
 HRESULT	Application::InitMesh()
 {
+    /*HRESULT hr = CompileAndCreateVertexShader(L"shader.fx", "VS", pVertexShader);
+    hr = CompileAndCreatePixelShader(L"shader.fx", "PS", pPixelShader);
+    hr = CompileAndCreatePixelShader(L"shader.fx", "PS", pPixelShaderSolid);
+    hr = CompileAndCreateVertexShader(L"ParallaxShader.fx", "VS", pParallaxVertexShader);
+    hr = CompileAndCreatePixelShader(L"ParallaxShader.fx", "PS", pParallaxPixelShader);*/
+
     // Compile the vertex shader
+// Compile the vertex shader
     ID3DBlob* pVSBlob = nullptr;
     HRESULT hr = CompileShaderFromFile(L"shader.fx", "VS", "vs_4_0", &pVSBlob);
     if (FAILED(hr))
@@ -378,7 +392,7 @@ HRESULT	Application::InitMesh()
     }
 
     // Create the vertex shader
-    hr = g_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &g_pVertexShader);
+    hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pVertexShader);
     if (FAILED(hr))
     {
         pVSBlob->Release();
@@ -396,14 +410,14 @@ HRESULT	Application::InitMesh()
     UINT numElements = ARRAYSIZE(layout);
 
     // Create the input layout
-    hr = g_pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-        pVSBlob->GetBufferSize(), &g_pVertexLayout);
+    hr = pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+        pVSBlob->GetBufferSize(), &pVertexLayout);
     pVSBlob->Release();
     if (FAILED(hr))
         return hr;
 
     // Set the input layout
-    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+    pImmediateContext->IASetInputLayout(pVertexLayout);
 
     // Compile the pixel shader
     ID3DBlob* pPSBlob = nullptr;
@@ -416,7 +430,7 @@ HRESULT	Application::InitMesh()
     }
 
     // Create the pixel shader
-    hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader);
+    hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShader);
     pPSBlob->Release();
     if (FAILED(hr))
         return hr;
@@ -433,10 +447,11 @@ HRESULT	Application::InitMesh()
     }
 
     // Create the SOLID pixel shader
-    hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShaderSolid);
+    hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShaderSolid);
     pPSBlob->Release();
     if (FAILED(hr))
         return hr;
+
 
     // Create the constant buffer
     D3D11_BUFFER_DESC bd = {};
@@ -452,7 +467,7 @@ HRESULT	Application::InitMesh()
     bd.ByteWidth = sizeof(ConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pConstantBuffer);
+    hr = pd3dDevice->CreateBuffer(&bd, nullptr, &pConstantBuffer);
     if (FAILED(hr))
         return hr;
 
@@ -461,7 +476,7 @@ HRESULT	Application::InitMesh()
     bd.ByteWidth = sizeof(MaterialPropertiesConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pMaterialConstantBuffer);
+    hr = pd3dDevice->CreateBuffer(&bd, nullptr, &pMaterialConstantBuffer);
     if (FAILED(hr))
         return hr;
 
@@ -470,22 +485,30 @@ HRESULT	Application::InitMesh()
     bd.ByteWidth = sizeof(LightPropertiesConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pLightConstantBuffer);
+    hr = pd3dDevice->CreateBuffer(&bd, nullptr, &pLightConstantBuffer);
     if (FAILED(hr))
         return hr;
 
     // load and setup textures
-    hr = CreateDDSTextureFromFile(g_pd3dDevice, L"Resources\\stone.dds", nullptr, &g_pTextureRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\stone.dds", nullptr, &pTextureRV);
     if (FAILED(hr))
         return hr;
 
-    hr = CreateDDSTextureFromFile(g_pd3dDevice, L"Resources\\conenormal.dds", nullptr, &g_pNormalTextureRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\conenormal.dds", nullptr, &pNormalTextureRV);
     if (FAILED(hr))
         return hr;
 
-    hr = CreateDDSTextureFromFile(g_pd3dDevice, L"Resources\\normals.dds", nullptr, &g_pParallaxTextureRV);
+    /*hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, &pParallaxTextureRV);
     if (FAILED(hr))
         return hr;
+
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, &pParallaxColorRV);
+    if (FAILED(hr))
+        return hr;
+
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\displacement.dds", nullptr, &pParallaxDisplacementMapRV);
+    if (FAILED(hr))
+        return hr;*/
 
     D3D11_SAMPLER_DESC sampDesc;
     ZeroMemory(&sampDesc, sizeof(sampDesc));
@@ -496,10 +519,69 @@ HRESULT	Application::InitMesh()
     sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     sampDesc.MinLOD = 0;
     sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-    hr = g_pd3dDevice->CreateSamplerState(&sampDesc, &g_pSamplerLinear);
+    hr = pd3dDevice->CreateSamplerState(&sampDesc, &pSamplerLinear);
 
     return hr;
 }
+/*
+HRESULT Application::CompileAndCreateVertexShader(const WCHAR *shaderFilename, const LPCSTR shaderName, ID3D11VertexShader* vertexShader)
+{
+    // Compile the vertex shader
+    ID3DBlob* pVSBlob = nullptr;
+    HRESULT hr = CompileShaderFromFile(shaderFilename, shaderName, "vs_4_0", &pVSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+
+    // Create the vertex shader
+    hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &vertexShader);
+    if (FAILED(hr))
+    {
+        pVSBlob->Release();
+        return hr;
+    }
+
+    // Define the input layout
+    D3D11_INPUT_ELEMENT_DESC layout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+    UINT numElements = ARRAYSIZE(layout);
+
+    // Create the input layout
+    hr = pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+        pVSBlob->GetBufferSize(), &pVertexLayout);
+    pVSBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Set the input layout
+    pImmediateContext->IASetInputLayout(pVertexLayout);
+}
+
+HRESULT Application::CompileAndCreatePixelShader(const WCHAR *shaderFilename, const LPCSTR shaderName, ID3D11PixelShader* pixelShader)
+{
+    ID3DBlob* pPSBlob = nullptr;
+    HRESULT hr = CompileShaderFromFile(shaderFilename, "PS", "ps_4_0", &pPSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+
+    // Create the pixel shader
+    hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pixelShader);
+    pPSBlob->Release();
+    if (FAILED(hr))
+        return hr;
+}*/
 
 // ***************************************************************************************
 // InitWorld
@@ -507,16 +589,10 @@ HRESULT	Application::InitMesh()
 HRESULT Application::InitWorld(int width, int height)
 {
     // Initialize the world matrix
-    g_World1 = XMMatrixIdentity();
-
-    // Initialize the view matrix
-    XMVECTOR Eye = XMLoadFloat4(&g_EyePosition);
-    XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-    g_View = XMMatrixLookAtLH(Eye, At, Up);
+    world1 = XMMatrixIdentity();
 
     // Initialize the projection matrix
-    g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);
+    projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);
 
     return S_OK;
 }
@@ -527,23 +603,25 @@ HRESULT Application::InitWorld(int width, int height)
 //--------------------------------------------------------------------------------------
 void Application::CleanupDevice()
 {
-    if (g_pImmediateContext) g_pImmediateContext->ClearState();
+    if (pImmediateContext) pImmediateContext->ClearState();
 
-    if (g_pConstantBuffer) g_pConstantBuffer->Release();
-    if (g_pVertexBuffer) g_pVertexBuffer->Release();
-    if (g_pIndexBuffer) g_pIndexBuffer->Release();
-    if (g_pVertexLayout) g_pVertexLayout->Release();
-    if (g_pVertexShader) g_pVertexShader->Release();
-    if (g_pPixelShader) g_pPixelShader->Release();
-    if (g_pDepthStencil) g_pDepthStencil->Release();
-    if (g_pDepthStencilView) g_pDepthStencilView->Release();
-    if (g_pRenderTargetView) g_pRenderTargetView->Release();
-    if (g_pSwapChain1) g_pSwapChain1->Release();
-    if (g_pSwapChain) g_pSwapChain->Release();
-    if (g_pImmediateContext1) g_pImmediateContext1->Release();
-    if (g_pImmediateContext) g_pImmediateContext->Release();
-    if (g_pd3dDevice1) g_pd3dDevice1->Release();
-    if (g_pd3dDevice) g_pd3dDevice->Release();
+    if (pConstantBuffer) pConstantBuffer->Release();
+    if (pVertexBuffer) pVertexBuffer->Release();
+    if (pIndexBuffer) pIndexBuffer->Release();
+    if (pVertexLayout) pVertexLayout->Release();
+    if (pVertexShader) pVertexShader->Release();
+    //if (pParallaxVertexShader) pParallaxVertexShader->Release();
+    if (pPixelShader) pPixelShader->Release();
+    //if (pParallaxPixelShader) pParallaxPixelShader->Release();
+    if (pDepthStencil) pDepthStencil->Release();
+    if (pDepthStencilView) pDepthStencilView->Release();
+    if (pRenderTargetView) pRenderTargetView->Release();
+    if (pSwapChain1) pSwapChain1->Release();
+    if (pSwapChain) pSwapChain->Release();
+    if (pImmediateContext1) pImmediateContext1->Release();
+    if (pImmediateContext) pImmediateContext->Release();
+    if (pd3dDevice1) pd3dDevice1->Release();
+    if (pd3dDevice) pd3dDevice->Release();
 }
 
 
@@ -572,8 +650,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
 
-        // Note that this tutorial does not handle resizing (WM_SIZE) requests,
-        // so we created the window without the resize border.
+    case WM_MOUSEMOVE:
+    {
+        int currentXPos = GET_X_LPARAM(lParam);
+        int currentYPos = GET_Y_LPARAM(lParam);
+
+        int lastMouseXPos = g_mousePositionX;
+        int lastMouseYPos = g_mousePositionY;
+
+        g_mouseDeltaX = currentXPos - lastMouseXPos;
+        g_mouseDeltaY = currentYPos - lastMouseYPos;
+
+        g_mousePositionX = currentXPos;
+        g_mousePositionY = currentYPos;
+        break;
+    }
+
+    // Note that this tutorial does not handle resizing (WM_SIZE) requests,
+    // so we created the window without the resize border.
 
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -589,7 +683,7 @@ void Application::Render()
 {
     // Update our time
     static float t = 0.0f;
-    if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+    if (driverType == D3D_DRIVER_TYPE_REFERENCE)
     {
         t += (float)XM_PI * 0.0125f;
     }
@@ -603,31 +697,32 @@ void Application::Render()
     }
 
     // Clear the back buffer
-    g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::MidnightBlue);
+    pImmediateContext->ClearRenderTargetView(pRenderTargetView, Colors::MidnightBlue);
 
     // Clear the depth buffer to 1.0 (max depth)
-    g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    pImmediateContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 
     // Update variables for a cube
-    g_GameObject.update(t);
+    gameObject.update(t);
 
     // Update variables for the cube
-    XMMATRIX mGO = XMLoadFloat4x4(g_GameObject.getTransform());
+    XMMATRIX mGO = XMLoadFloat4x4(gameObject.getTransform());
 
     ConstantBuffer cb1;
     cb1.mWorld = XMMatrixTranspose(mGO);
-    cb1.mView = XMMatrixTranspose(g_View);
-    cb1.mProjection = XMMatrixTranspose(g_Projection);
+    XMMATRIX viewMatrix = XMLoadFloat4x4(&currentCamera->GetView());
+    cb1.mView = XMMatrixTranspose(viewMatrix);
+    cb1.mProjection = XMMatrixTranspose(projection);
     cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
-    g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+    pImmediateContext->UpdateSubresource(pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
     MaterialPropertiesConstantBuffer redPlasticMaterial;
     redPlasticMaterial.Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     redPlasticMaterial.Material.Specular = XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f);
     redPlasticMaterial.Material.SpecularPower = 32.0f;
     redPlasticMaterial.Material.UseTexture = true;
-    g_pImmediateContext->UpdateSubresource(g_pMaterialConstantBuffer, 0, nullptr, &redPlasticMaterial, 0, 0);
+    pImmediateContext->UpdateSubresource(pMaterialConstantBuffer, 0, nullptr, &redPlasticMaterial, 0, 0);
 
     Light light;
     light.Enabled = static_cast<int>(true);
@@ -639,36 +734,41 @@ void Application::Render()
     light.QuadraticAttenuation = 1;
 
 
-	// set up the light
-	XMFLOAT4 LightPosition(g_EyePosition);
-	light.Position = LightPosition;
-	XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
-	LightDirection = XMVector3Normalize(LightDirection);
-	XMStoreFloat4(&light.Direction, LightDirection);
+    // set up the light
+    XMFLOAT4 LightPosition(eyePosition);
+    light.Position = LightPosition;
+    XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
+    LightDirection = XMVector3Normalize(LightDirection);
+    XMStoreFloat4(&light.Direction, LightDirection);
 
-	LightPropertiesConstantBuffer lightProperties;
-	lightProperties.EyePosition = LightPosition;
+    LightPropertiesConstantBuffer lightProperties;
+    lightProperties.EyePosition = LightPosition;
     lightProperties.Lights[0] = light;
-    g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
+    pImmediateContext->UpdateSubresource(pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
 
-    // Render the cube
-    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pConstantBuffer);
-    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    // Render the cube - move all to drawable game object & then call drawable game object draw
+    pImmediateContext->VSSetShader(pVertexShader, nullptr, 0); //if parallax set one shader, if not set the other
+    //pImmediateContext->VSSetShader(pParallaxVertexShader, nullptr, 0); //if parallax set one shader, if not set the other
+    pImmediateContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+    pImmediateContext->PSSetShader(pPixelShader, nullptr, 0);
+    //pImmediateContext->PSSetShader(pParallaxPixelShader, nullptr, 0);
 
-    g_pImmediateContext->PSSetConstantBuffers(1, 1, &g_pMaterialConstantBuffer);
-    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+    pImmediateContext->PSSetConstantBuffers(1, 1, &pMaterialConstantBuffer); //two constant buffers needed possibly
+    pImmediateContext->PSSetConstantBuffers(2, 1, &pLightConstantBuffer);
 
-    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pTextureRV);
-    g_pImmediateContext->PSSetSamplers(0, 1, &g_pSamplerLinear);
-    
-    g_pImmediateContext->PSSetShaderResources(1, 1, &g_pNormalTextureRV);
-    g_pImmediateContext->PSSetShaderResources(2, 1, &g_pParallaxTextureRV);
+    //if statement for if it's parallax or not in update
+    pImmediateContext->PSSetShaderResources(0, 1, &pTextureRV);
+    //add brick color
+    pImmediateContext->PSSetSamplers(0, 1, &pSamplerLinear);
 
-    g_pImmediateContext->DrawIndexed(36, 0, 0);
+    pImmediateContext->PSSetShaderResources(1, 1, &pNormalTextureRV);
+    pImmediateContext->PSSetShaderResources(2, 1, &pParallaxTextureRV);
+    //add displacement map
+
+    pImmediateContext->DrawIndexed(36, 0, 0);
 
     // Present our back buffer to our front buffer
-    g_pSwapChain->Present(0, 0);
+    pSwapChain->Present(0, 0);
 }
 
 void Application::Update()
@@ -676,7 +776,7 @@ void Application::Update()
     // Update our time
     static float t = 0.0f;
 
-    if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+    if (driverType == D3D_DRIVER_TYPE_REFERENCE)
     {
         t += (float)XM_PI * 0.0125f;
     }
@@ -695,22 +795,22 @@ void Application::Update()
 
     if (GetAsyncKeyState('W'))
     {
-        uvf3 = XMFLOAT3(0.0f, 0.001f, 0.0f);
+        uvf3 = XMFLOAT3(0.0f, 0.0001f, 0.0f);
         isKeyDown = true;
     }
     if (GetAsyncKeyState('S'))
     {
-        uvf3 = XMFLOAT3(0.0f, -0.001f, 0.0f);
+        uvf3 = XMFLOAT3(0.0f, -0.0001f, 0.0f);
         isKeyDown = true;
     }
     if (GetAsyncKeyState('D'))
     {
-        uvf3 = XMFLOAT3(0.001f, 0.0f, 0.0f);
+        uvf3 = XMFLOAT3(0.0001f, 0.0f, 0.0f);
         isKeyDown = true;
     }
     if (GetAsyncKeyState('A'))
     {
-        uvf3 = XMFLOAT3(-0.001f, 0.0f, 0.0f);
+        uvf3 = XMFLOAT3(-0.0001f, 0.0f, 0.0f);
         isKeyDown = true;
     }
     if (isKeyDown)
@@ -727,18 +827,15 @@ void Application::Update()
         _YValue = newCameraPos.y;
         _ZValue = newCameraPos.z;
 
-        XMStoreFloat3(&movementVector, unitVector);
-
-        /*
-        XMStoreFloat4x4(&_cameraPosM, XMMatrixTranslation(_XValue, _YValue, (_ZValue - 4.0f)));
+        XMStoreFloat4x4(&_cameraPosM, XMMatrixTranslation(_XValue, _YValue, _ZValue));
         XMMATRIX cameraPositionM = XMLoadFloat4x4(&_cameraPosM);
-        XMVECTOR cameraPositionV;
-        cameraPositionV = -newCameraPosV;
-        cameraPositionV = XMVector3TransformCoord(cameraPositionV, cameraPositionM);
-        XMStoreFloat3(&newCameraPos, cameraPositionV);*/
+
+        cameraPosV = XMVector3TransformCoord(cameraPosV, cameraPositionM);
+        XMStoreFloat3(&newCameraPos, cameraPosV);
+
+        currentCamera->Update(XMVectorSet(newCameraPos.x, newCameraPos.y, newCameraPos.z, 1.0f), g_mouseDeltaX, g_mouseDeltaY);
+        eyePosition = currentCamera->GetPosition();
     }
-    _camera->Update(XMVectorSet(newCameraPos.x, 0.0f, newCameraPos.z + _ZValue, 0.0f), XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
-    //g_EyePosition = _camera->GetPosition();
 }
 
 

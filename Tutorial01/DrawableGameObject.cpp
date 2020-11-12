@@ -19,11 +19,11 @@ DrawableGameObject::DrawableGameObject()
 
 DrawableGameObject::~DrawableGameObject()
 {
-	if( m_pVertexBuffer ) 
+	if (m_pVertexBuffer)
 		m_pVertexBuffer->Release();
-	
-	if( m_pIndexBuffer )
-		m_pIndexBuffer->Release();	
+
+	if (m_pIndexBuffer)
+		m_pIndexBuffer->Release();
 
 	if (m_pTextureResourceView)
 		m_pTextureResourceView->Release();
@@ -49,7 +49,7 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 		//bottom
 		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f), XMFLOAT3(-0.3f, -0.3f, -0.3f) }, //6
 		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(-0.3f, -0.3f, -0.3f) }, //7
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(-0.3f, -0.3f, -0.3f) }, //8
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f), XMFLOAT3(-0.3f, -0.3f, -0.3f) }, //8
 
 		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f), XMFLOAT3(-0.3f, -0.3f, -0.3f) }, //9
 		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f), XMFLOAT3(-0.3f, -0.3f, -0.3f) }, //10
@@ -185,4 +185,7 @@ void DrawableGameObject::update(float t)
 void DrawableGameObject::draw(ID3D11DeviceContext* pContext)
 {
 	pContext->DrawIndexed(NUM_VERTICES, 0, 0);
+	//bind textures for object & material structure here
 }
+
+//add member for whether it's parallax or not

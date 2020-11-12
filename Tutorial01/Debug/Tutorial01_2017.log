@@ -1,7 +1,2 @@
-﻿  Application.cpp
-E:\University\dx11\Tutorial01\Application.cpp(562,13): warning C4189: 'xPos': local variable is initialized but not referenced
-E:\University\dx11\Tutorial01\Application.cpp(563,13): warning C4189: 'yPos': local variable is initialized but not referenced
-  main.cpp
-E:\University\dx11\Tutorial01\main.cpp(8,44): warning C4316: 'Application': object allocated on the heap may not be aligned 16
-  Generating Code...
+﻿  DrawableGameObject.cpp
   Tutorial01_2017.vcxproj -> E:\University\dx11\Debug\Tutorial01.exe
