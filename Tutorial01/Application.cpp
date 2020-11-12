@@ -1,14 +1,9 @@
 #define _XM_NO_INTRINSICS_
 
 #include "Application.h"
+DirectX::XMFLOAT4 g_EyePosition(0.0f, 0, -3, 1.0f);
 
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-
-int g_mousePositionX = 0;
-int g_mousePositionY = 0;
-
-int g_mouseDeltaX = 0;
-int g_mouseDeltaY = 0;
 
 Application::Application()
 {
@@ -46,7 +41,6 @@ Application::Application()
     g_pSamplerNormal = nullptr;
 
     _camera = nullptr;
-    g_EyePosition = XMFLOAT4(0.0f, 0.0f, -3.0f, 1.0f);
 }
 
 Application::~Application()
@@ -76,9 +70,10 @@ HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
     _XValue = 0.0f;
     _YValue = 0.0f;
     _ZValue = -3.0f;
-	_camera = new Camera(_WindowWidth, _WindowHeight, XMVectorSet(_XValue, _YValue, _ZValue, 1.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), false);
-    g_EyePosition = _camera->GetPosition();
-    //g_LightPosition = g_EyePosition;
+	_camera = new Camera(_WindowWidth, _WindowHeight, XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
+    //g_EyePosition = _camera->GetPosition();
+    //g_EyePosition = XMFLOAT4(0.0f, 0, -3, 1.0f);
+    g_LightPosition = g_EyePosition;
 
     return S_OK;
 }
@@ -514,6 +509,12 @@ HRESULT Application::InitWorld(int width, int height)
     // Initialize the world matrix
     g_World1 = XMMatrixIdentity();
 
+    // Initialize the view matrix
+    XMVECTOR Eye = XMLoadFloat4(&g_EyePosition);
+    XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    g_View = XMMatrixLookAtLH(Eye, At, Up);
+
     // Initialize the projection matrix
     g_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);
 
@@ -571,22 +572,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
 
-    case WM_MOUSEMOVE:
-    {
-        int currentXPos = GET_X_LPARAM(lParam);
-        int currentYPos = GET_Y_LPARAM(lParam);
-
-        int lastMouseXPos = g_mousePositionX;
-        int lastMouseYPos = g_mousePositionY;
-
-        g_mouseDeltaX = currentXPos - lastMouseXPos;
-        g_mouseDeltaY = currentYPos - lastMouseYPos;
-
-        g_mousePositionX = currentXPos;
-        g_mousePositionY = currentYPos;
-        break;
-    }
-
         // Note that this tutorial does not handle resizing (WM_SIZE) requests,
         // so we created the window without the resize border.
 
@@ -632,8 +617,7 @@ void Application::Render()
 
     ConstantBuffer cb1;
     cb1.mWorld = XMMatrixTranspose(mGO);
-    XMMATRIX viewMatrix = XMLoadFloat4x4(&_camera->GetView());
-    cb1.mView = XMMatrixTranspose(viewMatrix);
+    cb1.mView = XMMatrixTranspose(g_View);
     cb1.mProjection = XMMatrixTranspose(g_Projection);
     cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
@@ -711,22 +695,22 @@ void Application::Update()
 
     if (GetAsyncKeyState('W'))
     {
-        uvf3 = XMFLOAT3(0.0f, 0.0001f, 0.0f);
+        uvf3 = XMFLOAT3(0.0f, 0.001f, 0.0f);
         isKeyDown = true;
     }
     if (GetAsyncKeyState('S'))
     {
-        uvf3 = XMFLOAT3(0.0f, -0.0001f, 0.0f);
+        uvf3 = XMFLOAT3(0.0f, -0.001f, 0.0f);
         isKeyDown = true;
     }
     if (GetAsyncKeyState('D'))
     {
-        uvf3 = XMFLOAT3(0.0001f, 0.0f, 0.0f);
+        uvf3 = XMFLOAT3(0.001f, 0.0f, 0.0f);
         isKeyDown = true;
     }
     if (GetAsyncKeyState('A'))
     {
-        uvf3 = XMFLOAT3(-0.0001f, 0.0f, 0.0f);
+        uvf3 = XMFLOAT3(-0.001f, 0.0f, 0.0f);
         isKeyDown = true;
     }
     if (isKeyDown)
@@ -743,15 +727,18 @@ void Application::Update()
         _YValue = newCameraPos.y;
         _ZValue = newCameraPos.z;
 
-		XMStoreFloat4x4(&_cameraPosM, XMMatrixTranslation(_XValue, _YValue, _ZValue));
-		XMMATRIX cameraPositionM = XMLoadFloat4x4(&_cameraPosM);
+        XMStoreFloat3(&movementVector, unitVector);
 
-        cameraPosV = XMVector3TransformCoord(cameraPosV, cameraPositionM);
-        XMStoreFloat3(&newCameraPos, cameraPosV);
-
-		_camera->Update(XMVectorSet(newCameraPos.x, newCameraPos.y, newCameraPos.z, 1.0f), g_mouseDeltaX, g_mouseDeltaY);
-        g_EyePosition = _camera->GetPosition();
+        /*
+        XMStoreFloat4x4(&_cameraPosM, XMMatrixTranslation(_XValue, _YValue, (_ZValue - 4.0f)));
+        XMMATRIX cameraPositionM = XMLoadFloat4x4(&_cameraPosM);
+        XMVECTOR cameraPositionV;
+        cameraPositionV = -newCameraPosV;
+        cameraPositionV = XMVector3TransformCoord(cameraPositionV, cameraPositionM);
+        XMStoreFloat3(&newCameraPos, cameraPositionV);*/
     }
+    _camera->Update(XMVectorSet(newCameraPos.x, 0.0f, newCameraPos.z + _ZValue, 0.0f), XMVectorSet(_XValue, _YValue, _ZValue, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), true);
+    //g_EyePosition = _camera->GetPosition();
 }
 
 
