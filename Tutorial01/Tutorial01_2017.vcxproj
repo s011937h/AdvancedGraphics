@@ -369,11 +369,17 @@
     <ClCompile Include="SimpleVertex.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Resources\color.dds" />
     <Image Include="Resources\conenormal.dds" />
+    <Image Include="Resources\displacement.dds" />
     <Image Include="Resources\normals.dds" />
     <Image Include="Resources\stone.dds" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="parallaxShader.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="shader.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </FxCompile>

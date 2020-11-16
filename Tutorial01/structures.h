@@ -47,6 +47,39 @@ struct MaterialPropertiesConstantBuffer
 	_Material   Material;
 };
 
+struct _ParallaxMaterial
+{
+	_ParallaxMaterial()
+		: Emissive(0.0f, 0.0f, 0.0f, 1.0f)
+		, Ambient(0.1f, 0.1f, 0.1f, 1.0f)
+		, Diffuse(1.0f, 1.0f, 1.0f, 1.0f)
+		, Specular(1.0f, 1.0f, 1.0f, 1.0f)
+		, SpecularPower(128.0f)
+		, UseTexture(false)
+		, Bias(0.0f)
+		, ScaleFactor(1.0f)
+	{}
+
+	DirectX::XMFLOAT4   Emissive;
+	//----------------------------------- (16 byte boundary)
+	DirectX::XMFLOAT4   Ambient;
+	//----------------------------------- (16 byte boundary)
+	DirectX::XMFLOAT4   Diffuse;
+	//----------------------------------- (16 byte boundary)
+	DirectX::XMFLOAT4   Specular;
+	//----------------------------------- (16 byte boundary)
+	float               SpecularPower;
+	int                 UseTexture;
+	float               Bias;
+	float				ScaleFactor;
+	//----------------------------------- (16 byte boundary)
+}; // Total:                                80 bytes (5 * 16)
+
+struct ParallaxMaterialPropertiesConstantBuffer
+{
+	_ParallaxMaterial   ParallaxMaterial;
+};
+
 enum LightType
 {
 	DirectionalLight = 0,

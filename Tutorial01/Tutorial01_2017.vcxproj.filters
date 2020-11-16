@@ -42,9 +42,18 @@
     <Image Include="Resources\normals.dds">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="Resources\color.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\displacement.dds">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="parallaxShader.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

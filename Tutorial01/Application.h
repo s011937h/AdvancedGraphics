@@ -40,26 +40,11 @@ private:
 	ID3D11RenderTargetView* pRenderTargetView;
 	ID3D11Texture2D* pDepthStencil;
 	ID3D11DepthStencilView* pDepthStencilView;
-	ID3D11VertexShader* pVertexShader;
-	ID3D11VertexShader* pParallaxVertexShader;
-
-	ID3D11PixelShader* pPixelShader;
-	ID3D11PixelShader* pPixelShaderSolid;
-	ID3D11PixelShader* pParallaxPixelShader;
-
-	ID3D11InputLayout* pVertexLayout;
-	ID3D11Buffer* pVertexBuffer;
-	ID3D11Buffer* pIndexBuffer;
 
 	ID3D11Buffer* pConstantBuffer;
 	ID3D11Buffer* pMaterialConstantBuffer;
 	ID3D11Buffer* pLightConstantBuffer;
 
-	ID3D11ShaderResourceView* pTextureRV;
-	ID3D11ShaderResourceView* pNormalTextureRV;
-	ID3D11ShaderResourceView* pParallaxTextureRV;
-	ID3D11ShaderResourceView* pParallaxColorRV;
-	ID3D11ShaderResourceView* pParallaxDisplacementMapRV;
 
 	ID3D11SamplerState* pSamplerLinear;
 	ID3D11SamplerState* pSamplerNormal;
@@ -78,9 +63,6 @@ private:
 	HRESULT	InitWorld(int width, int height);
 	void	CleanupDevice();
 
-	HRESULT CompileAndCreateVertexShader(const WCHAR* shaderFilename, const LPCSTR shaderName, ID3D11VertexShader* vertexShader);
-	HRESULT CompileAndCreatePixelShader(const WCHAR* shaderFilename, const LPCSTR shaderName, ID3D11PixelShader* pixelShader);
-
 	UINT windowHeight;
 	UINT windowWidth;
 
@@ -95,40 +77,8 @@ private:
 	XMFLOAT3 movementVector;
 	XMFLOAT3 newCameraPos;
 	XMFLOAT3 cameraPos;
-	XMFLOAT4X4 _cameraPosM;
+	XMFLOAT4X4 cameraPosM;
 
-
-
-	/*my code from before below
-
-	ID3D11DepthStencilView* _depthStencilView;
-	ID3D11Texture2D* _depthStencilBuffer;
-	ID3D11RasterizerState* _wireFrame;
-	ID3D11RasterizerState* _solidObject;
-
-	XMVECTOR lookToPos;
-
-	XMFLOAT3 lightDirection;
-	XMFLOAT4 diffuseMaterial;
-	XMFLOAT4 diffuseLight;
-	XMFLOAT4 ambientMaterial;
-	XMFLOAT4 ambientLight;
-
-	XMFLOAT4 specularMaterial;
-	XMFLOAT4 specularLight;
-	float specularPower;
-	XMFLOAT4 eyePositionW;
-	ID3D11ShaderResourceView* _pTextureRV;
-	ID3D11ShaderResourceView* _pTextureAlpha = nullptr;
-	ID3D11ShaderResourceView* _pTextureCar = nullptr;
-	ID3D11ShaderResourceView* _pTextureGround = nullptr;
-	ID3D11SamplerState* _pSamplerLinear = nullptr;
-
-	ID3D11BlendState* Transparency;
-
-
-	bool firstLoad = true;
-	*/
 
 public:
 	Application();

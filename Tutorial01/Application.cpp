@@ -25,24 +25,10 @@ Application::Application()
     pRenderTargetView = nullptr;
     pDepthStencil = nullptr;
     pDepthStencilView = nullptr;
-    pVertexShader = nullptr;
-    pParallaxVertexShader = nullptr;
-
-    pPixelShader = nullptr;
-    pPixelShaderSolid = nullptr;
-    pParallaxPixelShader = nullptr;
-
-    pVertexLayout = nullptr;
-    pVertexBuffer = nullptr;
-    pIndexBuffer = nullptr;
-
+   
     pConstantBuffer = nullptr;
     pMaterialConstantBuffer = nullptr;
     pLightConstantBuffer = nullptr;
-
-    pTextureRV = nullptr;
-    pNormalTextureRV = nullptr;
-    pParallaxTextureRV = nullptr;
 
     pSamplerLinear = nullptr;
     pSamplerNormal = nullptr;
@@ -128,43 +114,6 @@ HRESULT Application::InitWindow(HINSTANCE hInstance, int nCmdShow)
 }
 
 
-//--------------------------------------------------------------------------------------
-// Helper for compiling shaders with D3DCompile
-//
-// With VS 11, we could load up prebuilt .cso files instead...
-//--------------------------------------------------------------------------------------
-HRESULT CompileShaderFromFile(const WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
-{
-    HRESULT hr = S_OK;
-
-    DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#ifdef _DEBUG
-    // Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
-    // Setting this flag improves the shader debugging experience, but still allows 
-    // the shaders to be optimized and to run exactly the way they will run in 
-    // the release configuration of this program.
-    dwShaderFlags |= D3DCOMPILE_DEBUG;
-
-    // Disable optimizations to further improve shader debugging
-    dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
-
-    ID3DBlob* pErrorBlob = nullptr;
-    hr = D3DCompileFromFile(szFileName, nullptr, nullptr, szEntryPoint, szShaderModel,
-        dwShaderFlags, 0, ppBlobOut, &pErrorBlob);
-    if (FAILED(hr))
-    {
-        if (pErrorBlob)
-        {
-            OutputDebugStringA(reinterpret_cast<const char*>(pErrorBlob->GetBufferPointer()));
-            pErrorBlob->Release();
-        }
-        return hr;
-    }
-    if (pErrorBlob) pErrorBlob->Release();
-
-    return S_OK;
-}
 
 
 //--------------------------------------------------------------------------------------
@@ -361,7 +310,7 @@ HRESULT Application::InitDevice()
         return hr;
     }
 
-    hr = gameObject.initMesh(pd3dDevice, pImmediateContext);
+    hr = gameObject.InitGameObjectMesh(pd3dDevice, pImmediateContext);
     if (FAILED(hr))
         return hr;
 
@@ -374,86 +323,8 @@ HRESULT Application::InitDevice()
 
 HRESULT	Application::InitMesh()
 {
-    /*HRESULT hr = CompileAndCreateVertexShader(L"shader.fx", "VS", pVertexShader);
-    hr = CompileAndCreatePixelShader(L"shader.fx", "PS", pPixelShader);
-    hr = CompileAndCreatePixelShader(L"shader.fx", "PS", pPixelShaderSolid);
-    hr = CompileAndCreateVertexShader(L"ParallaxShader.fx", "VS", pParallaxVertexShader);
-    hr = CompileAndCreatePixelShader(L"ParallaxShader.fx", "PS", pParallaxPixelShader);*/
 
-    // Compile the vertex shader
-// Compile the vertex shader
-    ID3DBlob* pVSBlob = nullptr;
-    HRESULT hr = CompileShaderFromFile(L"shader.fx", "VS", "vs_4_0", &pVSBlob);
-    if (FAILED(hr))
-    {
-        MessageBox(nullptr,
-            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-        return hr;
-    }
-
-    // Create the vertex shader
-    hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pVertexShader);
-    if (FAILED(hr))
-    {
-        pVSBlob->Release();
-        return hr;
-    }
-
-    // Define the input layout
-    D3D11_INPUT_ELEMENT_DESC layout[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-    UINT numElements = ARRAYSIZE(layout);
-
-    // Create the input layout
-    hr = pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-        pVSBlob->GetBufferSize(), &pVertexLayout);
-    pVSBlob->Release();
-    if (FAILED(hr))
-        return hr;
-
-    // Set the input layout
-    pImmediateContext->IASetInputLayout(pVertexLayout);
-
-    // Compile the pixel shader
-    ID3DBlob* pPSBlob = nullptr;
-    hr = CompileShaderFromFile(L"shader.fx", "PS", "ps_4_0", &pPSBlob);
-    if (FAILED(hr))
-    {
-        MessageBox(nullptr,
-            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-        return hr;
-    }
-
-    // Create the pixel shader
-    hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShader);
-    pPSBlob->Release();
-    if (FAILED(hr))
-        return hr;
-
-
-    // Compile the SOLID pixel shader
-    pPSBlob = nullptr;
-    hr = CompileShaderFromFile(L"shader.fx", "PSSolid", "ps_4_0", &pPSBlob);
-    if (FAILED(hr))
-    {
-        MessageBox(nullptr,
-            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-        return hr;
-    }
-
-    // Create the SOLID pixel shader
-    hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShaderSolid);
-    pPSBlob->Release();
-    if (FAILED(hr))
-        return hr;
-
-
-    // Create the constant buffer
+// Create the constant buffer
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(SimpleVertex) * 24;
@@ -467,7 +338,7 @@ HRESULT	Application::InitMesh()
     bd.ByteWidth = sizeof(ConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = pd3dDevice->CreateBuffer(&bd, nullptr, &pConstantBuffer);
+    HRESULT hr = pd3dDevice->CreateBuffer(&bd, nullptr, &pConstantBuffer);
     if (FAILED(hr))
         return hr;
 
@@ -489,99 +360,19 @@ HRESULT	Application::InitMesh()
     if (FAILED(hr))
         return hr;
 
-    // load and setup textures
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\stone.dds", nullptr, &pTextureRV);
-    if (FAILED(hr))
-        return hr;
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory(&sampDesc, sizeof(sampDesc));
+	sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	hr = pd3dDevice->CreateSamplerState(&sampDesc, &pSamplerLinear);
 
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\conenormal.dds", nullptr, &pNormalTextureRV);
-    if (FAILED(hr))
-        return hr;
-
-    /*hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, &pParallaxTextureRV);
-    if (FAILED(hr))
-        return hr;
-
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, &pParallaxColorRV);
-    if (FAILED(hr))
-        return hr;
-
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\displacement.dds", nullptr, &pParallaxDisplacementMapRV);
-    if (FAILED(hr))
-        return hr;*/
-
-    D3D11_SAMPLER_DESC sampDesc;
-    ZeroMemory(&sampDesc, sizeof(sampDesc));
-    sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    sampDesc.MinLOD = 0;
-    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-    hr = pd3dDevice->CreateSamplerState(&sampDesc, &pSamplerLinear);
-
-    return hr;
+	return hr;
 }
-/*
-HRESULT Application::CompileAndCreateVertexShader(const WCHAR *shaderFilename, const LPCSTR shaderName, ID3D11VertexShader* vertexShader)
-{
-    // Compile the vertex shader
-    ID3DBlob* pVSBlob = nullptr;
-    HRESULT hr = CompileShaderFromFile(shaderFilename, shaderName, "vs_4_0", &pVSBlob);
-    if (FAILED(hr))
-    {
-        MessageBox(nullptr,
-            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-        return hr;
-    }
-
-    // Create the vertex shader
-    hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &vertexShader);
-    if (FAILED(hr))
-    {
-        pVSBlob->Release();
-        return hr;
-    }
-
-    // Define the input layout
-    D3D11_INPUT_ELEMENT_DESC layout[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-    UINT numElements = ARRAYSIZE(layout);
-
-    // Create the input layout
-    hr = pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-        pVSBlob->GetBufferSize(), &pVertexLayout);
-    pVSBlob->Release();
-    if (FAILED(hr))
-        return hr;
-
-    // Set the input layout
-    pImmediateContext->IASetInputLayout(pVertexLayout);
-}
-
-HRESULT Application::CompileAndCreatePixelShader(const WCHAR *shaderFilename, const LPCSTR shaderName, ID3D11PixelShader* pixelShader)
-{
-    ID3DBlob* pPSBlob = nullptr;
-    HRESULT hr = CompileShaderFromFile(shaderFilename, "PS", "ps_4_0", &pPSBlob);
-    if (FAILED(hr))
-    {
-        MessageBox(nullptr,
-            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
-        return hr;
-    }
-
-    // Create the pixel shader
-    hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pixelShader);
-    pPSBlob->Release();
-    if (FAILED(hr))
-        return hr;
-}*/
 
 // ***************************************************************************************
 // InitWorld
@@ -605,14 +396,8 @@ void Application::CleanupDevice()
 {
     if (pImmediateContext) pImmediateContext->ClearState();
 
+    gameObject.CleaupGameObject();
     if (pConstantBuffer) pConstantBuffer->Release();
-    if (pVertexBuffer) pVertexBuffer->Release();
-    if (pIndexBuffer) pIndexBuffer->Release();
-    if (pVertexLayout) pVertexLayout->Release();
-    if (pVertexShader) pVertexShader->Release();
-    //if (pParallaxVertexShader) pParallaxVertexShader->Release();
-    if (pPixelShader) pPixelShader->Release();
-    //if (pParallaxPixelShader) pParallaxPixelShader->Release();
     if (pDepthStencil) pDepthStencil->Release();
     if (pDepthStencilView) pDepthStencilView->Release();
     if (pRenderTargetView) pRenderTargetView->Release();
@@ -704,10 +489,10 @@ void Application::Render()
 
 
     // Update variables for a cube
-    gameObject.update(t);
+    gameObject.Update(t);
 
     // Update variables for the cube
-    XMMATRIX mGO = XMLoadFloat4x4(gameObject.getTransform());
+    XMMATRIX mGO = XMLoadFloat4x4(gameObject.GetTransform());
 
     ConstantBuffer cb1;
     cb1.mWorld = XMMatrixTranspose(mGO);
@@ -746,26 +531,10 @@ void Application::Render()
     lightProperties.Lights[0] = light;
     pImmediateContext->UpdateSubresource(pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
 
-    // Render the cube - move all to drawable game object & then call drawable game object draw
-    pImmediateContext->VSSetShader(pVertexShader, nullptr, 0); //if parallax set one shader, if not set the other
-    //pImmediateContext->VSSetShader(pParallaxVertexShader, nullptr, 0); //if parallax set one shader, if not set the other
-    pImmediateContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
-    pImmediateContext->PSSetShader(pPixelShader, nullptr, 0);
-    //pImmediateContext->PSSetShader(pParallaxPixelShader, nullptr, 0);
-
-    pImmediateContext->PSSetConstantBuffers(1, 1, &pMaterialConstantBuffer); //two constant buffers needed possibly
-    pImmediateContext->PSSetConstantBuffers(2, 1, &pLightConstantBuffer);
-
-    //if statement for if it's parallax or not in update
-    pImmediateContext->PSSetShaderResources(0, 1, &pTextureRV);
-    //add brick color
-    pImmediateContext->PSSetSamplers(0, 1, &pSamplerLinear);
-
-    pImmediateContext->PSSetShaderResources(1, 1, &pNormalTextureRV);
-    pImmediateContext->PSSetShaderResources(2, 1, &pParallaxTextureRV);
-    //add displacement map
-
-    pImmediateContext->DrawIndexed(36, 0, 0);
+    gameObject.Draw(pImmediateContext);
+	pImmediateContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+	pImmediateContext->PSSetConstantBuffers(1, 1, &pMaterialConstantBuffer); //two constant buffers needed possibly
+	pImmediateContext->PSSetConstantBuffers(2, 1, &pLightConstantBuffer);
 
     // Present our back buffer to our front buffer
     pSwapChain->Present(0, 0);
@@ -827,14 +596,27 @@ void Application::Update()
         _YValue = newCameraPos.y;
         _ZValue = newCameraPos.z;
 
-        XMStoreFloat4x4(&_cameraPosM, XMMatrixTranslation(_XValue, _YValue, _ZValue));
-        XMMATRIX cameraPositionM = XMLoadFloat4x4(&_cameraPosM);
+        XMStoreFloat4x4(&cameraPosM, XMMatrixTranslation(_XValue, _YValue, _ZValue));
+        XMMATRIX cameraPositionM = XMLoadFloat4x4(&cameraPosM);
 
         cameraPosV = XMVector3TransformCoord(cameraPosV, cameraPositionM);
         XMStoreFloat3(&newCameraPos, cameraPosV);
 
         currentCamera->Update(XMVectorSet(newCameraPos.x, newCameraPos.y, newCameraPos.z, 1.0f), g_mouseDeltaX, g_mouseDeltaY);
         eyePosition = currentCamera->GetPosition();
+    }
+
+    if (GetAsyncKeyState('P'))
+    {
+        gameObject.isParallax = true;
+        CleanupDevice();
+        InitDevice();
+    }
+    if (GetAsyncKeyState('N'))
+    {
+		gameObject.isParallax = false;
+		CleanupDevice();
+		InitDevice();
     }
 }
 
