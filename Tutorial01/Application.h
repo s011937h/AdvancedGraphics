@@ -16,6 +16,7 @@
 #include "Camera.h"
 
 #include <vector>
+#include <memory>
 
 using namespace std;
 
@@ -24,6 +25,10 @@ typedef vector<DrawableGameObject*> vecDrawables;
 using namespace DirectX;
 //make sure to change the input layout if you change this structure
 
+
+void SetDebugName(ID3D11DeviceChild* object, const std::string& name);
+void SetDebugName(const ComPtr<ID3D11DeviceChild> & object, const std::string& name);
+
 class Application
 {
 private:
@@ -31,23 +36,24 @@ private:
 	HWND					hWnd;
 	D3D_DRIVER_TYPE			driverType;
 	D3D_FEATURE_LEVEL		featureLevel;
-	ID3D11Device* pd3dDevice;
-	ID3D11Device1* pd3dDevice1;
-	ID3D11DeviceContext* pImmediateContext;
-	ID3D11DeviceContext1* pImmediateContext1;
-	IDXGISwapChain* pSwapChain;
-	IDXGISwapChain1* pSwapChain1;
-	ID3D11RenderTargetView* pRenderTargetView;
-	ID3D11Texture2D* pDepthStencil;
-	ID3D11DepthStencilView* pDepthStencilView;
+	ComPtr<ID3D11Device>    pd3dDevice;
+	ComPtr<ID3D11Device1>   pd3dDevice1;
+	ComPtr<ID3D11Debug>		d3dDebug;
+	ComPtr<ID3D11DeviceContext>  pImmediateContext;
+	ComPtr<ID3D11DeviceContext1> pImmediateContext1;
+	ComPtr<IDXGISwapChain>		 pSwapChain;
+	ComPtr<IDXGISwapChain1>		 pSwapChain1;
+	ComPtr<ID3D11RenderTargetView> pRenderTargetView;
+	ComPtr<ID3D11Texture2D>		 pDepthStencil;
+	ComPtr<ID3D11DepthStencilView> pDepthStencilView;
 
-	ID3D11Buffer* pConstantBuffer;
-	ID3D11Buffer* pMaterialConstantBuffer;
-	ID3D11Buffer* pLightConstantBuffer;
+	ComPtr<ID3D11Buffer> pConstantBuffer;
+	ComPtr<ID3D11Buffer> pMaterialConstantBuffer;
+	ComPtr<ID3D11Buffer> pLightConstantBuffer;
 
 
-	ID3D11SamplerState* pSamplerLinear;
-	ID3D11SamplerState* pSamplerNormal;
+	ComPtr<ID3D11SamplerState> pSamplerLinear;
+	ComPtr<ID3D11SamplerState> pSamplerNormal;
 
 	XMMATRIX                world1; //add new world when you add new object
 	XMMATRIX                projection;
@@ -72,7 +78,7 @@ private:
 	float _YValue;
 	float _ZValue;
 
-	Camera* currentCamera;
+	std::unique_ptr<Camera> currentCamera;
 	XMFLOAT3 uvf3 = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	XMFLOAT3 movementVector;
 	XMFLOAT3 newCameraPos;

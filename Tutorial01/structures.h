@@ -56,7 +56,7 @@ struct _ParallaxMaterial
 		, Specular(1.0f, 1.0f, 1.0f, 1.0f)
 		, SpecularPower(128.0f)
 		, UseTexture(false)
-		, Bias(0.0f)
+		, Bias(-0.01f)
 		, ScaleFactor(1.0f)
 	{}
 

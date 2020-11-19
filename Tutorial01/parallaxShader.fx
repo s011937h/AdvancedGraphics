@@ -210,6 +210,57 @@ float3 TangentToWorldSpace(float3 normalMapSample, float3 normal, float3 tangent
 	return bumpNorm;
 }
 
+float2 parallaxOcclusionMapping(in float3 V, in float2 textureCoords, out float parallaxHeight)
+{
+	// determine optimal number of layers
+	const float minLayers = 10;
+	const float maxLayers = 15;
+	float numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), V)));
+
+	// Calculate height of each layer
+	// current depth of the layer
+	float curLayerHeight = 0;
+	// shift of texture coordinates for each layer
+	float2 dtex = parallaxScale * V.xy / V.z / numLayers;
+
+	// current texture coordinates
+	float2 currentTextureCoords = textureCoords;
+
+	// get depth from heightmap
+	float heightFromTexture = txDisplacementMap.Sample(samLinear, currentTextureCoords).r; //getting red channel of texture (first one)
+
+	// while point is above the surface
+	while (heightFromTexture > curLayerHeight)
+	{
+		// to the next layer
+		curLayerHeight += layerHeight;
+		// shift of texture coordinates
+		currentTextureCoords -= dtex;
+		// get new depth from heightmap
+		heightFromTexture = txDisplacementMap.Sample(samLinear, currentTextureCoords).r;
+	}
+
+	   // previous texture coordinates
+	float2 prevTCoords = currentTextureCoords + texStep;
+
+	// heights for linear interpolation
+	float nextH = heightFromTexture - curLayerHeight;
+	float prevH = txDisplacementMap.Sample(heightFromTexture, prevTCoords).r - curLayerHeight + layerHeight;
+
+	// proportions for linear interpolation
+	float weight = nextH / (nextH - prevH);
+
+	// interpolation of texture coordinates
+	float2 finalTexCoords = prevTCoords * weight + currentTextureCoords * (1.0 - weight);
+
+	// interpolation of depth values
+	parallaxHeight = curLayerHeight + prevH * weight + nextH * (1.0 - weight);
+
+	// return result
+	return finalTexCoords;
+}
+
+
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------

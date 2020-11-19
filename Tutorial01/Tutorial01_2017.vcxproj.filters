@@ -26,6 +26,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="SimpleVertex.h" />
+    <ClInclude Include="ComPtr.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tutorial01.rc">

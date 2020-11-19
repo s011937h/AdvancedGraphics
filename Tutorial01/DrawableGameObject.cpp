@@ -109,14 +109,17 @@ HRESULT DrawableGameObject::InitGameObjectMesh(ID3D11Device* pd3dDevice, ID3D11D
 
 	D3D11_SUBRESOURCE_DATA InitData = {};
 	InitData.pSysMem = vertices;
-	hr = pd3dDevice->CreateBuffer(&bd, &InitData, &pVertexBuffer);
+	hr = pd3dDevice->CreateBuffer(&bd, &InitData, pVertexBuffer.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 		return hr;
 
 	// Set vertex buffer
 	UINT stride = sizeof(SimpleVertex);
 	UINT offset = 0;
-	pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
+	ID3D11Buffer* buffers[1] = {
+		pVertexBuffer.Get()
+	};
+	pContext->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
 
 	// Create index buffer
 	WORD indices[] =
@@ -140,34 +143,34 @@ HRESULT DrawableGameObject::InitGameObjectMesh(ID3D11Device* pd3dDevice, ID3D11D
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	InitData.pSysMem = indices;
-	hr = pd3dDevice->CreateBuffer(&bd, &InitData, &pIndexBuffer);
+	hr = pd3dDevice->CreateBuffer(&bd, &InitData, pIndexBuffer.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 		return hr;
 
 	// Set index buffer
-	pContext->IASetIndexBuffer(pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	pContext->IASetIndexBuffer(pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
 	// Set primitive topology
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // load and setup textures
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\stone.dds", nullptr, &pTextureRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\stone.dds", nullptr, pTextureRV.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\conenormal.dds", nullptr, &pNormalTextureRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\conenormal.dds", nullptr, pNormalTextureRV.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, &pParallaxTextureRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, pParallaxTextureRV.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, &pParallaxColorRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, pParallaxColorRV.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\displacement.dds", nullptr, &pParallaxDisplacementMapRV);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\displacement.dds", nullptr, pParallaxDisplacementMapRV.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
@@ -180,7 +183,7 @@ HRESULT DrawableGameObject::InitGameObjectMesh(ID3D11Device* pd3dDevice, ID3D11D
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = pd3dDevice->CreateSamplerState(&sampDesc, &pSamplerLinear);
+	hr = pd3dDevice->CreateSamplerState(&sampDesc, pSamplerLinear.ReleaseAndGetAddressOf());
 
 	material.Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	material.Material.Specular = XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f);
@@ -209,30 +212,31 @@ void DrawableGameObject::Draw(ID3D11DeviceContext* pImmediateContext)
 {
 	if (isParallax)
 	{
-		pImmediateContext->VSSetShader(pParallaxVertexShader, nullptr, 0);
-		pImmediateContext->PSSetShader(pParallaxPixelShader, nullptr, 0);
-		pImmediateContext->PSSetShaderResources(0, 1, &pParallaxColorRV);
-		pImmediateContext->PSSetShaderResources(1, 1, &pParallaxTextureRV);
-		pImmediateContext->PSSetShaderResources(2, 1, &pParallaxDisplacementMapRV);
-		pVertexShader = nullptr;
-		pPixelShader = nullptr;
-		pTextureRV = nullptr;
-		pNormalTextureRV = nullptr;
+		pImmediateContext->VSSetShader(pParallaxVertexShader.Get(), nullptr, 0);
+		pImmediateContext->PSSetShader(pParallaxPixelShader.Get(), nullptr, 0);
+		ID3D11ShaderResourceView* psShaderResources [3] = {
+			pParallaxColorRV.Get(),
+			pParallaxTextureRV.Get(),
+			pParallaxDisplacementMapRV.Get()
+		};
+		pImmediateContext->PSSetShaderResources(0, 3, psShaderResources);
 	}
 	else
 	{
-		pImmediateContext->VSSetShader(pVertexShader, nullptr, 0);
-		pImmediateContext->PSSetShader(pPixelShader, nullptr, 0);
-		pImmediateContext->PSSetShaderResources(0, 1, &pTextureRV);
-		pImmediateContext->PSSetShaderResources(1, 1, &pNormalTextureRV);
-		pParallaxVertexShader = nullptr;
-		pParallaxPixelShader = nullptr;
-		pParallaxTextureRV = nullptr;
-		pParallaxColorRV = nullptr;
-		pParallaxDisplacementMapRV = nullptr;
+		pImmediateContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
+		pImmediateContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
+		ID3D11ShaderResourceView* psShaderResources[2] =
+		{
+			pTextureRV.Get(),
+			pNormalTextureRV.Get()
+		};
+		pImmediateContext->PSSetShaderResources(0, 2, psShaderResources);
 	}
 
-    pImmediateContext->PSSetSamplers(0, 1, &pSamplerLinear);
+	ID3D11SamplerState* psSamplers [1] = {
+		pSamplerLinear.Get()
+	};
+    pImmediateContext->PSSetSamplers(0, 1, psSamplers);
     pImmediateContext->DrawIndexed(36, 0, 0);
 }
 
@@ -249,7 +253,7 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 	}
 
 	// Create the vertex shader
-	hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pVertexShader);
+	hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, pVertexShader.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 	{
 		pVSBlob->Release();
@@ -268,13 +272,13 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 
 	// Create the input layout
 	hr = pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
-		pVSBlob->GetBufferSize(), &pVertexLayout);
+		pVSBlob->GetBufferSize(), pVertexLayout.ReleaseAndGetAddressOf());
 	pVSBlob->Release();
 	if (FAILED(hr))
 		return hr;
 
 	// Set the input layout
-	pImmediateContext->IASetInputLayout(pVertexLayout);
+	pImmediateContext->IASetInputLayout(pVertexLayout.Get());
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = nullptr;
@@ -287,7 +291,7 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 	}
 
 	// Create the pixel shader
-	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShader);
+	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, pPixelShader.ReleaseAndGetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return hr;
@@ -304,7 +308,7 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 	}
 
 	// Create the SOLID pixel shader
-	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShaderSolid);
+	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, pPixelShaderSolid.ReleaseAndGetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return hr;
@@ -321,7 +325,7 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 	}
 
 	// Create the vertex shader
-	hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pParallaxVertexShader);
+	hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, pParallaxVertexShader.ReleaseAndGetAddressOf());
 	if (FAILED(hr))
 	{
 		pVSBlob->Release();
@@ -339,7 +343,7 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 	}
 
 	// Create the pixel shader
-	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pParallaxPixelShader);
+	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, pParallaxPixelShader.ReleaseAndGetAddressOf());
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return hr;
@@ -385,18 +389,19 @@ HRESULT DrawableGameObject::CompileShaderFromFile(const WCHAR* szFileName, LPCST
 
 void DrawableGameObject::CleaupGameObject()
 {
-	if (pVertexBuffer) pVertexBuffer->Release();
-	if (pIndexBuffer) pIndexBuffer->Release();
-	if (pVertexLayout) pVertexLayout->Release();
-	if (pVertexShader) pVertexShader->Release();
-	if (pParallaxVertexShader) pParallaxVertexShader->Release();
-	if (pPixelShader) pPixelShader->Release();
-	if (pPixelShaderSolid) pPixelShaderSolid->Release();
-	if (pParallaxPixelShader) pParallaxPixelShader->Release();
-	if (pTextureRV) pTextureRV->Release();
-	if (pParallaxTextureRV) pParallaxTextureRV->Release();
-	if (pNormalTextureRV) pNormalTextureRV->Release();
-	if (pParallaxColorRV) pParallaxColorRV->Release();
-	if (pParallaxDisplacementMapRV) pParallaxDisplacementMapRV->Release();
+	if (pVertexBuffer) pVertexBuffer.Reset();
+	if (pIndexBuffer) pIndexBuffer.Reset();
+	if (pVertexLayout) pVertexLayout.Reset();
+	if (pVertexShader) pVertexShader.Reset();
+	if (pParallaxVertexShader) pParallaxVertexShader.Reset();
+	if (pPixelShader) pPixelShader.Reset();
+	if (pPixelShaderSolid) pPixelShaderSolid.Reset();
+	if (pParallaxPixelShader) pParallaxPixelShader.Reset();
+	if (pTextureRV) pTextureRV.Reset();
+	if (pParallaxTextureRV) pParallaxTextureRV.Reset();
+	if (pNormalTextureRV) pNormalTextureRV.Reset();
+	if (pParallaxColorRV) pParallaxColorRV.Reset();
+	if (pParallaxDisplacementMapRV) pParallaxDisplacementMapRV.Reset();
+	if (pSamplerLinear) pSamplerLinear.Reset();
 }
 
