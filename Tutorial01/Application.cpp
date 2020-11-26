@@ -291,6 +291,9 @@ HRESULT Application::InitDevice()
 
     pImmediateContext->OMSetRenderTargets(1, renderTargetViews, pDepthStencilView.Get());
 
+    //TODO : make textures for Gbuffer
+    // TODO : make textures for post-process
+
     // Setup the viewport
     D3D11_VIEWPORT vp;
     vp.Width = (FLOAT)width;
@@ -557,17 +560,35 @@ void Application::Render()
     lightProperties.Lights[0] = light;
     pImmediateContext->UpdateSubresource(pLightConstantBuffer.Get(), 0, nullptr, &lightProperties, 0, 0);
 
+    // Begin g-buffer pass
+    //  bind g-buffer rendertargets
+
+    // Draw objects to g-buffer
+
     gameObject.Draw(pImmediateContext.Get());
 
     ID3D11Buffer* vsBuffer[1] = {
         pConstantBuffer.Get()
     };
 	pImmediateContext->VSSetConstantBuffers(0, 1, vsBuffer);
-    ID3D11Buffer* psBuffers[2] = {
+    ID3D11Buffer* psBuffers[3] = {
+        pConstantBuffer.Get(),
         pMaterialConstantBuffer.Get(),
         pLightConstantBuffer.Get()
     };
-	pImmediateContext->PSSetConstantBuffers(1, 2, psBuffers); //two constant buffers needed possibly
+	pImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
+
+
+    // Begin lighting pass
+    //  bind light accumlation texture rendertarget
+
+    // draw light(s)
+
+    // begin post-process pass
+
+    // draw post-process fullscreen quad
+
+    //  bind swapchain rendertarget
 
     // Present our back buffer to our front buffer
     pSwapChain->Present(0, 0);

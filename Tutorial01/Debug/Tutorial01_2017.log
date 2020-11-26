@@ -3,13 +3,6 @@ E:\University\dx11\Tutorial01\Application.cpp(451,13): warning C4189: 'xPos': lo
 E:\University\dx11\Tutorial01\Application.cpp(452,13): warning C4189: 'yPos': local variable is initialized but not referenced
 E:\University\dx11\Tutorial01\Application.cpp(525): warning C4238: nonstandard extension used: class rvalue used as lvalue
 E:\University\dx11\Tutorial01\Application.cpp(525,65): warning C4238: nonstandard extension used: class rvalue used as lvalue
-E:\University\dx11\Tutorial01\Application.cpp(638,113): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-E:\University\dx11\Tutorial01\Application.cpp(638,98): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-  DrawableGameObject.cpp
-E:\University\dx11\Tutorial01\DrawableGameObject.cpp(196,47): warning C4458: declaration of 'position' hides class member
-E:\University\dx11\Tutorial01\DrawableGameObject.h(45,17): message : see declaration of 'DrawableGameObject::position'
-  main.cpp
-E:\University\dx11\Tutorial01\main.cpp(8,44): warning C4316: 'Application': object allocated on the heap may not be aligned 16
-  Generating Code...
-E:\University\dx11\Tutorial01\DrawableGameObject.cpp(350): warning C4715: 'DrawableGameObject::CompileCreateShaders': not all control paths return a value
+E:\University\dx11\Tutorial01\Application.cpp(639,113): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+E:\University\dx11\Tutorial01\Application.cpp(639,98): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
   Tutorial01_2017.vcxproj -> E:\University\dx11\Debug\Tutorial01.exe
