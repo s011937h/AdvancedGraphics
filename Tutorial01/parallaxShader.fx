@@ -232,12 +232,12 @@ float2 ParallaxOcclusionMapping(in float3 vectorToCamera, in float2 textureCoord
 	float numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), vectorToCamera)));
 
 	// Calculate height of each layer
-	float parallaxScale = scaleFactor; //adjust
+	float parallaxScale = 1.0f;//scaleFactor; //adjust
 	const float layerHeight = 0.125f;
 	// current depth of the layer
 	float currentLayerHeight = 0;
 	// shift of texture coordinates for each layer
-	float2 texCoordsDelta = parallaxScale * vectorToCamera.xy / vectorToCamera.z / numLayers;
+	float2 texCoordsDelta = (parallaxScale * vectorToCamera.xy) / vectorToCamera.z / numLayers;
 
 	// current texture coordinates
 	float2 currentTextureCoords = textureCoords;
@@ -250,8 +250,8 @@ float2 ParallaxOcclusionMapping(in float3 vectorToCamera, in float2 textureCoord
 	float finalPreviousHeight;
 	float finalTextureCoords;
 	float finalHeightFromTexture;
-	// while point is above the surface
-	//while (heightFromTexture > currentLayerHeight) //change to a for loop with a fixed number of sample points defined by a const
+
+	//point is above the surface
 	for(int i; i < maxLayers; i++)
 	{
 		// to the next layer
@@ -303,14 +303,22 @@ float2 ParallaxOcclusionMapping(in float3 vectorToCamera, in float2 textureCoord
 
 float4 PS(PS_INPUT IN) : SV_TARGET
 {
+	float3 tangent = normalize(IN.Tangent);
+	float3 normal = normalize(IN.Norm);
+
+	float3 normalInCameraSpace = mul(normal, View);
+	float3 tangentInCameraSpace = mul(tangent, View);
+	float3 eyeInTangentSpace = EyeVectorToTangentSpace(normalInCameraSpace, tangentInCameraSpace);
+
+	float parallaxHeight;
+	float2 finalTexCoords = ParallaxOcclusionMapping(eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor, parallaxHeight);
+
 	float4 normalMapSample = { 0, 0, 1, 1 };
 	if (ParallaxMaterial.UseTexture)
 	{
 		//todo - move normal map sample to after POM caclulation and use finalTexCoords instead of IN.Tex
-		normalMapSample = txNormalMap.Sample(samLinear, IN.Tex);
+		normalMapSample = txNormalMap.Sample(samLinear, finalTexCoords);
 	}
-	float3 tangent = normalize(IN.Tangent);
-	float3 normal = normalize(IN.Norm);
 
 	float3 worldSpaceNormal = TangentToWorldSpace(normalMapSample, normal, tangent);
 	LightingResult lit = ComputeLighting(IN.worldPos, worldSpaceNormal);
@@ -321,13 +329,6 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 ambient = ParallaxMaterial.Ambient * GlobalAmbient;
 	float4 diffuse = ParallaxMaterial.Diffuse * lit.Diffuse;
 	float4 specular = ParallaxMaterial.Specular * lit.Specular;
-
-	float3 normalInCameraSpace = mul(normal, View);
-	float3 tangentInCameraSpace = mul(tangent, View);
-	float3 eyeInTangentSpace = EyeVectorToTangentSpace(normalInCameraSpace, tangentInCameraSpace);
-
-	float parallaxHeight;
-	float2 finalTexCoords = ParallaxOcclusionMapping(eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor, parallaxHeight);
 
 	if (ParallaxMaterial.UseTexture)
 	{
