@@ -10,36 +10,46 @@ int g_mousePositionY = 0;
 int g_mouseDeltaX = 0;
 int g_mouseDeltaY = 0;
 
+Application * g_Application = nullptr;
+
 Application::Application()
 {
     hInst = nullptr;
     hWnd = nullptr;
     driverType = D3D_DRIVER_TYPE_NULL;
     featureLevel = D3D_FEATURE_LEVEL_11_0;
-    pd3dDevice = nullptr;
-    pd3dDevice1 = nullptr;
-    pImmediateContext = nullptr;
-    pImmediateContext1 = nullptr;
-    pSwapChain = nullptr;
-    pSwapChain1 = nullptr;
-    pRenderTargetView = nullptr;
-    pDepthStencil = nullptr;
-    pDepthStencilView = nullptr;
+    m_pd3dDevice = nullptr;
+    m_pd3dDevice1 = nullptr;
+    m_ImmediateContext = nullptr;
+    m_ImmediateContext1 = nullptr;
+    m_SwapChain = nullptr;
+    m_SwapChain1 = nullptr;
+    m_RenderTargetView = nullptr;
+    m_DepthStencil = nullptr;
+    m_DepthStencilView = nullptr;
    
-    pConstantBuffer = nullptr;
-    pMaterialConstantBuffer = nullptr;
-    pLightConstantBuffer = nullptr;
+    m_ConstantBuffer = nullptr;
+    m_MaterialConstantBuffer = nullptr;
+    m_LightConstantBuffer = nullptr;
+    m_PostProcessBuffer = nullptr;
 
-    pSamplerLinear = nullptr;
-    pSamplerNormal = nullptr;
+    m_SamplerLinear = nullptr;
+    m_SamplerNormal = nullptr;
 
     currentCamera = nullptr;
     eyePosition = XMFLOAT4(0.0f, 0.0f, -3.0f, 1.0f);
+
+    g_Application = this;
 }
 
 Application::~Application()
 {
     CleanupDevice();
+
+    if (g_Application == this)
+    {
+        g_Application = nullptr;
+    }
 }
 
 HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
@@ -153,13 +163,13 @@ HRESULT Application::InitDevice()
     {
         driverType = driverTypes[driverTypeIndex];
         hr = D3D11CreateDevice(nullptr, driverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
-            D3D11_SDK_VERSION, pd3dDevice.ReleaseAndGetAddressOf(), &featureLevel, pImmediateContext.ReleaseAndGetAddressOf());
+            D3D11_SDK_VERSION, m_pd3dDevice.ReleaseAndGetAddressOf(), &featureLevel, m_ImmediateContext.ReleaseAndGetAddressOf());
 
         if (hr == E_INVALIDARG)
         {
             // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
             hr = D3D11CreateDevice(nullptr, driverType, nullptr, createDeviceFlags, &featureLevels[1], numFeatureLevels - 1,
-                D3D11_SDK_VERSION, pd3dDevice.ReleaseAndGetAddressOf(), &featureLevel, pImmediateContext.ReleaseAndGetAddressOf());
+                D3D11_SDK_VERSION, m_pd3dDevice.ReleaseAndGetAddressOf(), &featureLevel, m_ImmediateContext.ReleaseAndGetAddressOf());
         }
 
         if (SUCCEEDED(hr))
@@ -168,13 +178,13 @@ HRESULT Application::InitDevice()
     if (FAILED(hr))
         return hr;
 
-    d3dDebug = pd3dDevice.QueryInterfaceCast<ID3D11Debug>();
+    m_d3dDebug = m_pd3dDevice.QueryInterfaceCast<ID3D11Debug>();
 
     // Obtain DXGI factory from device (since we used nullptr for pAdapter above)
     IDXGIFactory1* dxgiFactory = nullptr;
     {
         IDXGIDevice* dxgiDevice = nullptr;
-        hr = pd3dDevice->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
+        hr = m_pd3dDevice->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
         if (SUCCEEDED(hr))
         {
             IDXGIAdapter* adapter = nullptr;
@@ -196,10 +206,10 @@ HRESULT Application::InitDevice()
     if (dxgiFactory2)
     {
         // DirectX 11.1 or later
-        hr = pd3dDevice->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void**>(&pd3dDevice1));
+        hr = m_pd3dDevice->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void**>(&m_pd3dDevice1));
         if (SUCCEEDED(hr))
         {
-            (void)pImmediateContext->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&pImmediateContext1));
+            (void)m_ImmediateContext->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&m_ImmediateContext1));
         }
 
         DXGI_SWAP_CHAIN_DESC1 sd = {};
@@ -211,10 +221,10 @@ HRESULT Application::InitDevice()
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         sd.BufferCount = 1;
 
-        hr = dxgiFactory2->CreateSwapChainForHwnd(pd3dDevice.Get(), hWnd, &sd, nullptr, nullptr, pSwapChain1.ReleaseAndGetAddressOf());
+        hr = dxgiFactory2->CreateSwapChainForHwnd(m_pd3dDevice.Get(), hWnd, &sd, nullptr, nullptr, m_SwapChain1.ReleaseAndGetAddressOf());
         if (SUCCEEDED(hr))
         {
-            hr = pSwapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&pSwapChain));
+            hr = m_SwapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&m_SwapChain));
         }
 
         dxgiFactory2->Release();
@@ -235,7 +245,7 @@ HRESULT Application::InitDevice()
         sd.SampleDesc.Quality = 0;
         sd.Windowed = TRUE;
 
-        hr = dxgiFactory->CreateSwapChain(pd3dDevice.Get(), &sd, pSwapChain.ReleaseAndGetAddressOf());
+        hr = dxgiFactory->CreateSwapChain(m_pd3dDevice.Get(), &sd, m_SwapChain.ReleaseAndGetAddressOf());
     }
 
     // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
@@ -248,11 +258,11 @@ HRESULT Application::InitDevice()
 
     // Create a render target view
     ID3D11Texture2D* pBackBuffer = nullptr;
-    hr = pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
+    hr = m_SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
     if (FAILED(hr))
         return hr;
 
-    hr = pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, pRenderTargetView.ReleaseAndGetAddressOf());
+    hr = m_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, m_RenderTargetView.ReleaseAndGetAddressOf());
     pBackBuffer->Release();
     if (FAILED(hr))
         return hr;
@@ -270,26 +280,48 @@ HRESULT Application::InitDevice()
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
-    hr = pd3dDevice->CreateTexture2D(&descDepth, nullptr, pDepthStencil.ReleaseAndGetAddressOf());
+    hr = m_pd3dDevice->CreateTexture2D(&descDepth, nullptr, m_DepthStencil.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
-    // Create the depth stencil view
+    // Create the depth stencil view - 
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     descDSV.Texture2D.MipSlice = 0;
-    hr = pd3dDevice->CreateDepthStencilView(pDepthStencil.Get(), &descDSV, pDepthStencilView.ReleaseAndGetAddressOf());
+    hr = m_pd3dDevice->CreateDepthStencilView(m_DepthStencil.Get(), &descDSV, m_DepthStencilView.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
 
+    //create light accumulation
+    D3D11_TEXTURE2D_DESC lightAccumulationDesc = {};
+    lightAccumulationDesc.Width = width;
+    lightAccumulationDesc.Height = height;
+    lightAccumulationDesc.MipLevels = 1;
+    lightAccumulationDesc.ArraySize = 1;
+    lightAccumulationDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    lightAccumulationDesc.SampleDesc.Count = 1;
+    lightAccumulationDesc.SampleDesc.Quality = 0;
+    lightAccumulationDesc.Usage = D3D11_USAGE_DEFAULT;
+    lightAccumulationDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    lightAccumulationDesc.CPUAccessFlags = 0;
+    lightAccumulationDesc.MiscFlags = 0;
+    hr = m_pd3dDevice->CreateTexture2D(&lightAccumulationDesc, nullptr, m_LightAccumulation.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
 
-    ID3D11RenderTargetView* renderTargetViews[] =
-    {
-        pRenderTargetView.Get()
-    };
+    hr = m_pd3dDevice->CreateRenderTargetView(m_LightAccumulation.Get(), nullptr, m_LightAccumulationRTV.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
 
-    pImmediateContext->OMSetRenderTargets(1, renderTargetViews, pDepthStencilView.Get());
+    D3D11_SHADER_RESOURCE_VIEW_DESC lightAccumulationSRVDesc = {};
+    lightAccumulationSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    lightAccumulationSRVDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    lightAccumulationSRVDesc.Texture2D.MostDetailedMip = 0;
+    lightAccumulationSRVDesc.Texture2D.MipLevels = -1;
+    hr = m_pd3dDevice->CreateShaderResourceView(m_LightAccumulation.Get(), &lightAccumulationSRVDesc, m_LightAccumulationSRV.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
 
     //TODO : make textures for Gbuffer
     // TODO : make textures for post-process
@@ -302,7 +334,7 @@ HRESULT Application::InitDevice()
     vp.MaxDepth = 1.0f;
     vp.TopLeftX = 0;
     vp.TopLeftY = 0;
-    pImmediateContext->RSSetViewports(1, &vp);
+    m_ImmediateContext->RSSetViewports(1, &vp);
 
     hr = InitMesh();
     if (FAILED(hr))
@@ -320,7 +352,41 @@ HRESULT Application::InitDevice()
         return hr;
     }
 
-    hr = gameObject.InitGameObjectMesh(pd3dDevice.Get(), pImmediateContext.Get());
+    hr = gameObject.InitGameObjectMesh(m_pd3dDevice.Get(), m_ImmediateContext.Get());
+    if (FAILED(hr))
+        return hr;
+
+    // Compile the post process vertex shader
+    ID3DBlob* pVSBlob = nullptr;
+    hr = ShaderManager::Get().CompileShaderFromFile(L"postProcessShader.fx", "VS", "vs_4_0", &pVSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+
+    // Create the PP vertex shader
+    hr = m_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, m_PostProcessVertexShader.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+    {
+        pVSBlob->Release();
+        return hr;
+    }
+
+    // Compile the pixel shader
+    ID3DBlob* pPSBlob = nullptr;
+    hr = ShaderManager::Get().CompileShaderFromFile(L"postProcessShader.fx", "PS", "ps_4_0", &pPSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+
+    // Create the pixel shader
+    hr = m_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, m_PostProcessPixelShader.ReleaseAndGetAddressOf());
+    pPSBlob->Release();
     if (FAILED(hr))
         return hr;
 
@@ -348,30 +414,40 @@ HRESULT	Application::InitMesh()
     bd.ByteWidth = sizeof(ConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    HRESULT hr = pd3dDevice->CreateBuffer(&bd, nullptr, pConstantBuffer.ReleaseAndGetAddressOf());
+    HRESULT hr = m_pd3dDevice->CreateBuffer(&bd, nullptr, m_ConstantBuffer.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
-    SetDebugName(pConstantBuffer.Get(), "ConstantBuffer");
+    SetDebugName(m_ConstantBuffer.Get(), "ConstantBuffer");
 
     // Create the material constant buffer
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(MaterialPropertiesConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = pd3dDevice->CreateBuffer(&bd, nullptr, pMaterialConstantBuffer.ReleaseAndGetAddressOf());
+    hr = m_pd3dDevice->CreateBuffer(&bd, nullptr, m_MaterialConstantBuffer.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
-    SetDebugName(pMaterialConstantBuffer, "pMaterialConstantBuffer");
+    SetDebugName(m_MaterialConstantBuffer, "pMaterialConstantBuffer");
 
     // Create the light constant buffer
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(LightPropertiesConstantBuffer);
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
-    hr = pd3dDevice->CreateBuffer(&bd, nullptr, pLightConstantBuffer.ReleaseAndGetAddressOf());
+    hr = m_pd3dDevice->CreateBuffer(&bd, nullptr, m_LightConstantBuffer.ReleaseAndGetAddressOf());
     if (FAILED(hr))
         return hr;
-    SetDebugName(pLightConstantBuffer, "pLightConstantBuffer");
+    SetDebugName(m_LightConstantBuffer, "pLightConstantBuffer");
+
+    // Create the post process constant buffer
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(PostProcessBuffer);
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = 0;
+    hr = m_pd3dDevice->CreateBuffer(&bd, nullptr, m_PostProcessBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
+    SetDebugName(m_PostProcessBuffer, "m_PostProcessBuffer");
 
 	D3D11_SAMPLER_DESC sampDesc;
 	ZeroMemory(&sampDesc, sizeof(sampDesc));
@@ -382,7 +458,7 @@ HRESULT	Application::InitMesh()
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	hr = pd3dDevice->CreateSamplerState(&sampDesc, pSamplerLinear.ReleaseAndGetAddressOf());
+	hr = m_pd3dDevice->CreateSamplerState(&sampDesc, m_SamplerLinear.ReleaseAndGetAddressOf());
 
 	return hr;
 }
@@ -407,33 +483,39 @@ HRESULT Application::InitWorld(int width, int height)
 //--------------------------------------------------------------------------------------
 void Application::CleanupDevice()
 {
-    if (pImmediateContext)
+    if (m_ImmediateContext)
     {
-        pImmediateContext->Flush();
-        pImmediateContext->Flush();
+        m_ImmediateContext->Flush();
+        m_ImmediateContext->Flush();
     }
 
-    if (pImmediateContext) pImmediateContext->ClearState();
+    if (m_ImmediateContext) m_ImmediateContext->ClearState();
 
     gameObject.CleaupGameObject();
-    if (pConstantBuffer) pConstantBuffer.Reset();
-    if (pMaterialConstantBuffer) pMaterialConstantBuffer.Reset();
-    if (pLightConstantBuffer) pLightConstantBuffer.Reset();
-    if (pDepthStencil) pDepthStencil.Reset();
-    if (pDepthStencilView) pDepthStencilView.Reset();
-    if (pRenderTargetView) pRenderTargetView.Reset();
-    if (pSwapChain1) pSwapChain1.Reset();
-    if (pSwapChain) pSwapChain.Reset();
-    if (pImmediateContext1) pImmediateContext1.Reset();
-    if (pImmediateContext) pImmediateContext.Reset();
-    if (pd3dDevice1) pd3dDevice1.Reset();
-    if (pd3dDevice) pd3dDevice.Reset();
-    if (pSamplerLinear) pSamplerLinear.Reset();
+    if (m_ConstantBuffer) m_ConstantBuffer.Reset();
+    if (m_MaterialConstantBuffer) m_MaterialConstantBuffer.Reset();
+    if (m_LightConstantBuffer) m_LightConstantBuffer.Reset();
+    if (m_PostProcessBuffer) m_PostProcessBuffer.Reset();
+    if (m_DepthStencil) m_DepthStencil.Reset();
+    if (m_DepthStencilView) m_DepthStencilView.Reset();
+    if (m_RenderTargetView) m_RenderTargetView.Reset();
+    if (m_SwapChain1) m_SwapChain1.Reset();
+    if (m_SwapChain) m_SwapChain.Reset();
+    if (m_ImmediateContext1) m_ImmediateContext1.Reset();
+    if (m_ImmediateContext) m_ImmediateContext.Reset();
+    if (m_pd3dDevice1) m_pd3dDevice1.Reset();
+    if (m_pd3dDevice) m_pd3dDevice.Reset();
+    if (m_SamplerLinear) m_SamplerLinear.Reset();
+    if (m_LightAccumulation) m_LightAccumulation.Reset();
+    if (m_LightAccumulationRTV) m_LightAccumulationRTV.Reset();
+    if (m_LightAccumulationSRV) m_LightAccumulationSRV.Reset();
+    if (m_PostProcessVertexShader) m_PostProcessVertexShader.Reset();
+    if (m_PostProcessPixelShader) m_PostProcessPixelShader.Reset();
 
 #if _DEBUG
-    if (d3dDebug)
+    if (m_d3dDebug)
     {
-        d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+        m_d3dDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
     }
 #endif
 }
@@ -449,6 +531,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message)
     {
+    case WM_CHAR:
+    {
+        if (g_Application)
+        {
+            g_Application->CharTyped(wParam);
+        }
+        break;
+    }
+
     case WM_LBUTTONDOWN:
     {
         int xPos = GET_X_LPARAM(lParam);
@@ -495,6 +586,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 //--------------------------------------------------------------------------------------
 void Application::Render()
 {
+    ID3D11RenderTargetView* lightAccumulationRenderTargetViews[] =
+    {
+        m_LightAccumulationRTV.Get()
+    };
+
+    m_ImmediateContext->OMSetRenderTargets(1, lightAccumulationRenderTargetViews, m_DepthStencilView.Get());
+    
     // Update our time
     static float t = 0.0f;
     if (driverType == D3D_DRIVER_TYPE_REFERENCE)
@@ -511,10 +609,10 @@ void Application::Render()
     }
 
     // Clear the back buffer
-    pImmediateContext->ClearRenderTargetView(pRenderTargetView.Get(), Colors::LightPink);
+    m_ImmediateContext->ClearRenderTargetView(m_LightAccumulationRTV.Get(), Colors::LightPink);
 
     // Clear the depth buffer to 1.0 (max depth)
-    pImmediateContext->ClearDepthStencilView(pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+    m_ImmediateContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 
     // Update variables for a cube
@@ -529,14 +627,14 @@ void Application::Render()
     cb1.mView = XMMatrixTranspose(viewMatrix);
     cb1.mProjection = XMMatrixTranspose(projection);
     cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
-    pImmediateContext->UpdateSubresource(pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
+    m_ImmediateContext->UpdateSubresource(m_ConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
     MaterialPropertiesConstantBuffer redPlasticMaterial;
     redPlasticMaterial.Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     redPlasticMaterial.Material.Specular = XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f);
     redPlasticMaterial.Material.SpecularPower = 32.0f;
     redPlasticMaterial.Material.UseTexture = true;
-    pImmediateContext->UpdateSubresource(pMaterialConstantBuffer.Get(), 0, nullptr, &redPlasticMaterial, 0, 0);
+    m_ImmediateContext->UpdateSubresource(m_MaterialConstantBuffer.Get(), 0, nullptr, &redPlasticMaterial, 0, 0);
 
     Light light;
     light.Enabled = static_cast<int>(true);
@@ -558,25 +656,31 @@ void Application::Render()
     LightPropertiesConstantBuffer lightProperties;
     lightProperties.EyePosition = LightPosition;
     lightProperties.Lights[0] = light;
-    pImmediateContext->UpdateSubresource(pLightConstantBuffer.Get(), 0, nullptr, &lightProperties, 0, 0);
+    m_ImmediateContext->UpdateSubresource(m_LightConstantBuffer.Get(), 0, nullptr, &lightProperties, 0, 0);
+
+    //update values for post processing
+    PostProcessBuffer postProcessBuffer = {};
+    postProcessBuffer.enableColourInversion = colourInversion;
+    m_ImmediateContext->UpdateSubresource(m_PostProcessBuffer.Get(), 0, nullptr, &postProcessBuffer, sizeof(PostProcessBuffer), 0);
 
     // Begin g-buffer pass
     //  bind g-buffer rendertargets
 
     // Draw objects to g-buffer
-
-    gameObject.Draw(pImmediateContext.Get());
-
     ID3D11Buffer* vsBuffer[1] = {
-        pConstantBuffer.Get()
+      m_ConstantBuffer.Get()
     };
-	pImmediateContext->VSSetConstantBuffers(0, 1, vsBuffer);
+    m_ImmediateContext->VSSetConstantBuffers(0, 1, vsBuffer);
     ID3D11Buffer* psBuffers[3] = {
-        pConstantBuffer.Get(),
-        pMaterialConstantBuffer.Get(),
-        pLightConstantBuffer.Get()
+        m_ConstantBuffer.Get(),
+        m_MaterialConstantBuffer.Get(),
+        m_LightConstantBuffer.Get()
     };
-	pImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
+    m_ImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
+
+    gameObject.Draw(m_ImmediateContext.Get());
+
+  
 
 
     // Begin lighting pass
@@ -585,13 +689,39 @@ void Application::Render()
     // draw light(s)
 
     // begin post-process pass
+    //  bind swapchain rendertarget
+    ID3D11RenderTargetView* renderTargetViews[] =
+    {
+        m_RenderTargetView.Get()
+    };
+
+    m_ImmediateContext->OMSetRenderTargets(1, renderTargetViews, m_DepthStencilView.Get());
+   
+    // Clear the back buffer
+    m_ImmediateContext->ClearRenderTargetView(m_RenderTargetView.Get(), Colors::Black); 
 
     // draw post-process fullscreen quad
+    m_ImmediateContext->VSSetShader(m_PostProcessVertexShader.Get(), nullptr, 0);
+    m_ImmediateContext->PSSetShader(m_PostProcessPixelShader.Get(), nullptr, 0);
+    ID3D11ShaderResourceView* psShaderResources[1] =
+    {
+        m_LightAccumulationSRV.Get()
+    };
+    m_ImmediateContext->PSSetShaderResources(0, 1, psShaderResources);
 
-    //  bind swapchain rendertarget
+    ID3D11Buffer* psPostProcessBuffers[2] = {
+        m_ConstantBuffer.Get(),
+        m_PostProcessBuffer.Get(),
+    };
+    m_ImmediateContext->PSSetConstantBuffers(0, 2, psPostProcessBuffers);
+    m_ImmediateContext->Draw(3, 0); //full screen triangle
+
+
+    ID3D11ShaderResourceView* nullresource[1] = { nullptr };
+    m_ImmediateContext->PSSetShaderResources(0, 1, nullresource);
 
     // Present our back buffer to our front buffer
-    pSwapChain->Present(0, 0);
+    m_SwapChain->Present(0, 0);
 }
 
 void Application::Update()
@@ -659,18 +789,25 @@ void Application::Update()
         currentCamera->Update(XMVectorSet(newCameraPos.x, newCameraPos.y, newCameraPos.z, 1.0f), g_mouseDeltaX, g_mouseDeltaY);
         eyePosition = currentCamera->GetPosition();
     }
+}
 
-    if (GetAsyncKeyState('P'))
+void Application::CharTyped(char charTyped)
+{
+    if (charTyped == 'p')
     {
         gameObject.isParallax = true;
         CleanupDevice();
         InitDevice();
     }
-    if (GetAsyncKeyState('N'))
+    if (charTyped == 'n')
     {
-		gameObject.isParallax = false;
-		CleanupDevice();
-		InitDevice();
+        gameObject.isParallax = false;
+        CleanupDevice();
+        InitDevice();
+    }
+    if (charTyped == 'i')
+    {
+        colourInversion = !colourInversion;
     }
 }
 

@@ -10,6 +10,7 @@
 #include "structures.h"
 #include "SimpleVertex.h"
 #include "ComPtr.h"
+#include "ShaderManager.h"
 
 using namespace DirectX;
 
@@ -57,7 +58,6 @@ private:
 
 	ComPtr<ID3D11InputLayout> pVertexLayout;
 
-	HRESULT CompileShaderFromFile(const WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
 	HRESULT CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext);
 	
 };

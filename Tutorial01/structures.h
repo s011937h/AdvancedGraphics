@@ -15,6 +15,14 @@ struct ConstantBuffer
 	XMFLOAT4 vOutputColor;
 };
 
+struct PostProcessBuffer
+{
+	int enableColourInversion;
+	int padding;
+	int padding1;
+	int padding2;
+};
+
 struct _Material
 {
 	_Material()

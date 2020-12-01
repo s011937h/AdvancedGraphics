@@ -357,6 +357,7 @@
     <ClInclude Include="DDSTextureLoader.h" />
     <ClInclude Include="DrawableGameObject.h" />
     <CLInclude Include="resource.h" />
+    <ClInclude Include="ShaderManager.h" />
     <ClInclude Include="SimpleVertex.h" />
     <ClInclude Include="structures.h" />
     <ResourceCompile Include="Tutorial01.rc" />
@@ -367,6 +368,7 @@
     <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="DrawableGameObject.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ShaderManager.cpp" />
     <ClCompile Include="SimpleVertex.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -378,6 +380,10 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="parallaxShader.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="postProcessShader.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>

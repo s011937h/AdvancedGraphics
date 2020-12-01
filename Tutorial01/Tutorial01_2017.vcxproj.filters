@@ -7,6 +7,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="SimpleVertex.cpp" />
+    <ClCompile Include="ShaderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -27,6 +28,7 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="SimpleVertex.h" />
     <ClInclude Include="ComPtr.h" />
+    <ClInclude Include="ShaderManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tutorial01.rc">
@@ -55,6 +57,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="parallaxShader.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="postProcessShader.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

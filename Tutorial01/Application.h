@@ -36,24 +36,33 @@ private:
 	HWND					hWnd;
 	D3D_DRIVER_TYPE			driverType;
 	D3D_FEATURE_LEVEL		featureLevel;
-	ComPtr<ID3D11Device>    pd3dDevice;
-	ComPtr<ID3D11Device1>   pd3dDevice1;
-	ComPtr<ID3D11Debug>		d3dDebug;
-	ComPtr<ID3D11DeviceContext>  pImmediateContext;
-	ComPtr<ID3D11DeviceContext1> pImmediateContext1;
-	ComPtr<IDXGISwapChain>		 pSwapChain;
-	ComPtr<IDXGISwapChain1>		 pSwapChain1;
-	ComPtr<ID3D11RenderTargetView> pRenderTargetView;
-	ComPtr<ID3D11Texture2D>		 pDepthStencil;
-	ComPtr<ID3D11DepthStencilView> pDepthStencilView;
+	ComPtr<ID3D11Device>    m_pd3dDevice;
+	ComPtr<ID3D11Device1>   m_pd3dDevice1;
+	ComPtr<ID3D11Debug>		m_d3dDebug;
+	ComPtr<ID3D11DeviceContext>  m_ImmediateContext; //replace p with m_
+	ComPtr<ID3D11DeviceContext1> m_ImmediateContext1;
+	ComPtr<IDXGISwapChain>		 m_SwapChain;
+	ComPtr<IDXGISwapChain1>		 m_SwapChain1;
+	ComPtr<ID3D11RenderTargetView> m_RenderTargetView;
+	ComPtr<ID3D11Texture2D>		 m_DepthStencil;
+	ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
 
-	ComPtr<ID3D11Buffer> pConstantBuffer;
-	ComPtr<ID3D11Buffer> pMaterialConstantBuffer;
-	ComPtr<ID3D11Buffer> pLightConstantBuffer;
+	ComPtr<ID3D11Buffer> m_ConstantBuffer;
+	ComPtr<ID3D11Buffer> m_MaterialConstantBuffer;
+	ComPtr<ID3D11Buffer> m_LightConstantBuffer;
+	ComPtr<ID3D11Buffer> m_PostProcessBuffer; //reset me too
 
+	ComPtr<ID3D11SamplerState> m_SamplerLinear;
+	ComPtr<ID3D11SamplerState> m_SamplerNormal;
 
-	ComPtr<ID3D11SamplerState> pSamplerLinear;
-	ComPtr<ID3D11SamplerState> pSamplerNormal;
+	ComPtr<ID3D11Texture2D> m_LightAccumulation; //reset all in cleanupdevice
+	ComPtr<ID3D11RenderTargetView> m_LightAccumulationRTV;
+	ComPtr<ID3D11ShaderResourceView> m_LightAccumulationSRV;
+	ComPtr<ID3D11VertexShader> m_PostProcessVertexShader;
+	ComPtr<ID3D11PixelShader> m_PostProcessPixelShader;
+
+	bool colourInversion = false;
+
 
 	XMMATRIX                world1; //add new world when you add new object
 	XMMATRIX                projection;
@@ -94,5 +103,7 @@ public:
 
 	void Update();
 	void Render();
+
+	void CharTyped(char charTyped);
 };
 

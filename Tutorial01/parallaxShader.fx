@@ -232,7 +232,7 @@ float2 ParallaxOcclusionMapping(in float3 vectorToCamera, in float2 textureCoord
 	float numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), vectorToCamera)));
 
 	// Calculate height of each layer
-	float parallaxScale = 1.0f;//scaleFactor; //adjust
+	float parallaxScale = scaleFactor; //adjust
 	const float layerHeight = 0.125f;
 	// current depth of the layer
 	float currentLayerHeight = 0;
