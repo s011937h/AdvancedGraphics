@@ -30,6 +30,7 @@ Application::Application()
    
     m_ConstantBuffer = nullptr;
     m_MaterialConstantBuffer = nullptr;
+    m_ParallaxMaterialConstantBuffer = nullptr;
     m_LightConstantBuffer = nullptr;
     m_PostProcessBuffer = nullptr;
 
@@ -429,6 +430,16 @@ HRESULT	Application::InitMesh()
         return hr;
     SetDebugName(m_MaterialConstantBuffer, "pMaterialConstantBuffer");
 
+    // Create the parallax material constant buffer
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(MaterialPropertiesConstantBuffer);
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = 0;
+    hr = m_pd3dDevice->CreateBuffer(&bd, nullptr, m_ParallaxMaterialConstantBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
+    SetDebugName(m_ParallaxMaterialConstantBuffer, "m_ParallaxMaterialConstantBuffer");
+
     // Create the light constant buffer
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(LightPropertiesConstantBuffer);
@@ -494,6 +505,7 @@ void Application::CleanupDevice()
     gameObject.CleaupGameObject();
     if (m_ConstantBuffer) m_ConstantBuffer.Reset();
     if (m_MaterialConstantBuffer) m_MaterialConstantBuffer.Reset();
+    if (m_ParallaxMaterialConstantBuffer) m_ParallaxMaterialConstantBuffer.Reset();
     if (m_LightConstantBuffer) m_LightConstantBuffer.Reset();
     if (m_PostProcessBuffer) m_PostProcessBuffer.Reset();
     if (m_DepthStencil) m_DepthStencil.Reset();
@@ -636,6 +648,15 @@ void Application::Render()
     redPlasticMaterial.Material.UseTexture = true;
     m_ImmediateContext->UpdateSubresource(m_MaterialConstantBuffer.Get(), 0, nullptr, &redPlasticMaterial, 0, 0);
 
+    ParallaxMaterialPropertiesConstantBuffer parallaxMaterial;
+    parallaxMaterial.ParallaxMaterial.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    parallaxMaterial.ParallaxMaterial.Specular = XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f);
+    parallaxMaterial.ParallaxMaterial.SpecularPower = 32.0f;
+    parallaxMaterial.ParallaxMaterial.UseTexture = true;
+    parallaxMaterial.ParallaxMaterial.Bias = -0.01f;
+    parallaxMaterial.ParallaxMaterial.ScaleFactor = 1.0f;
+    m_ImmediateContext->UpdateSubresource(m_ParallaxMaterialConstantBuffer.Get(), 0, nullptr, &parallaxMaterial, 0, 0);
+
     Light light;
     light.Enabled = static_cast<int>(true);
     light.LightType = PointLight;
@@ -671,12 +692,25 @@ void Application::Render()
       m_ConstantBuffer.Get()
     };
     m_ImmediateContext->VSSetConstantBuffers(0, 1, vsBuffer);
-    ID3D11Buffer* psBuffers[3] = {
+
+    if (gameObject.isParallax)
+    {
+        ID3D11Buffer* psBuffers[3] = {
+        m_ConstantBuffer.Get(),
+        m_ParallaxMaterialConstantBuffer.Get(),
+        m_LightConstantBuffer.Get()
+        };
+        m_ImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
+    }
+    else
+    {
+        ID3D11Buffer* psBuffers[3] = {
         m_ConstantBuffer.Get(),
         m_MaterialConstantBuffer.Get(),
         m_LightConstantBuffer.Get()
-    };
-    m_ImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
+        };
+        m_ImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
+    }
 
     gameObject.Draw(m_ImmediateContext.Get());
 
@@ -714,7 +748,7 @@ void Application::Render()
         m_PostProcessBuffer.Get(),
     };
     m_ImmediateContext->PSSetConstantBuffers(0, 2, psPostProcessBuffers);
-    m_ImmediateContext->Draw(3, 0); //full screen triangle
+    m_ImmediateContext->Draw(3, 0); //render texture to full screen triangle
 
 
     ID3D11ShaderResourceView* nullresource[1] = { nullptr };

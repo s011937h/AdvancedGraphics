@@ -49,6 +49,7 @@ private:
 
 	ComPtr<ID3D11Buffer> m_ConstantBuffer;
 	ComPtr<ID3D11Buffer> m_MaterialConstantBuffer;
+	ComPtr<ID3D11Buffer> m_ParallaxMaterialConstantBuffer;
 	ComPtr<ID3D11Buffer> m_LightConstantBuffer;
 	ComPtr<ID3D11Buffer> m_PostProcessBuffer; //reset me too
 

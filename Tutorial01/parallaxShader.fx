@@ -316,7 +316,6 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 normalMapSample = { 0, 0, 1, 1 };
 	if (ParallaxMaterial.UseTexture)
 	{
-		//todo - move normal map sample to after POM caclulation and use finalTexCoords instead of IN.Tex
 		normalMapSample = txNormalMap.Sample(samLinear, finalTexCoords);
 	}
 
