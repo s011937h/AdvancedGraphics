@@ -94,6 +94,14 @@ struct PS_INPUT
 	float3 Tangent : TANGENT;
 };
 
+struct PS_OUTPUT
+{
+	float4 Diffuse : SV_TARGET0;
+	float4 Specular : SV_TARGET1;
+	float4 Emissive : SV_TARGET2;
+	float4 Normal : SV_TARGET3;
+};
+
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
 {
@@ -195,6 +203,14 @@ PS_INPUT VS( VS_INPUT input )
     return output;
 }
 
+/***********************************************
+
+MARKING SCHEME: Normal Mapping
+
+DESCRIPTION: Map sampling, normal value decompression, transformation to tangent space
+
+***********************************************/
+
 float3 TangentToWorldSpace(float3 normalMapSample, float3 normal, float3 tangent)
 {
 	// Uncompress each component from [0,1] to [-1,1].
@@ -212,7 +228,44 @@ float3 TangentToWorldSpace(float3 normalMapSample, float3 normal, float3 tangent
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
-float4 PS(PS_INPUT IN) : SV_TARGET
+PS_OUTPUT PS(PS_INPUT IN)
+{
+	PS_OUTPUT output;
+	float4 normalMapSample = { 0, 0, 1, 1 };
+	if (Material.UseTexture)
+	{
+		normalMapSample = txNormalMap.Sample(samLinear, IN.Tex);
+	}
+	float3 tangent = normalize(IN.Tangent);
+	float3 normal = normalize(IN.Norm);
+
+	float3 worldSpaceNormal = TangentToWorldSpace(normalMapSample, normal, tangent);
+	output.Normal = float4(worldSpaceNormal, 0);
+
+	output.Emissive = Material.Emissive;
+	output.Specular.w = Material.SpecularPower;
+	output.Specular.rgb = Material.Specular.rgb;
+
+	float4 texColor = { 1, 1, 1, 1 };
+	if (Material.UseTexture)
+	{
+		texColor = txDiffuse.Sample(samLinear, IN.Tex);
+	}
+	output.Diffuse = texColor * Material.Diffuse;
+
+	return output;
+}
+
+//--------------------------------------------------------------------------------------
+// PSSolid - render a solid color
+//--------------------------------------------------------------------------------------
+float4 PSSolid(PS_INPUT input) : SV_Target
+{
+	return vOutputColor;
+}
+
+
+float4 ForwardPS(PS_INPUT IN) : SV_TARGET
 {
 	float4 normalMapSample = { 0, 0, 1, 1 };
 	if (Material.UseTexture)
@@ -240,12 +293,4 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 finalColor = (emissive + ambient + diffuse + specular) * texColor;
 
 	return finalColor;
-}
-
-//--------------------------------------------------------------------------------------
-// PSSolid - render a solid color
-//--------------------------------------------------------------------------------------
-float4 PSSolid(PS_INPUT input) : SV_Target
-{
-	return vOutputColor;
 }

@@ -24,7 +24,7 @@ typedef vector<DrawableGameObject*> vecDrawables;
 
 using namespace DirectX;
 //make sure to change the input layout if you change this structure
-
+constexpr uint32_t kGBufferCount = 4;
 
 void SetDebugName(ID3D11DeviceChild* object, const std::string& name);
 void SetDebugName(const ComPtr<ID3D11DeviceChild> & object, const std::string& name);
@@ -61,6 +61,12 @@ private:
 	ComPtr<ID3D11ShaderResourceView> m_LightAccumulationSRV;
 	ComPtr<ID3D11VertexShader> m_PostProcessVertexShader;
 	ComPtr<ID3D11PixelShader> m_PostProcessPixelShader;
+	ComPtr<ID3D11VertexShader> m_DeferredLightingVertexShader;
+	ComPtr<ID3D11PixelShader> m_DeferredLightingPixelShader;
+
+	ComPtr<ID3D11Texture2D> m_GBufferTexture[kGBufferCount];
+	ComPtr<ID3D11RenderTargetView> m_GBufferRTV[kGBufferCount];
+	ComPtr<ID3D11ShaderResourceView> m_GBufferSRV[kGBufferCount];
 
 	bool colourInversion = false;
 

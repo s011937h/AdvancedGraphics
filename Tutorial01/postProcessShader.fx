@@ -82,6 +82,14 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 lightAccumulationSample = { 0, 0, 1, 1 };
 	lightAccumulationSample = txLightAccumulation.Sample(samLinear, coordinates);
 
+
+	/***********************************************
+
+	MARKING SCHEME: Simple screen space effect
+
+	DESCRIPTION: Colour inversion
+	
+	***********************************************/
 	if (enableColourInversion)
 	{
 		return float4(float3(1, 1, 1) - lightAccumulationSample.rgb, 1); //colour inversion

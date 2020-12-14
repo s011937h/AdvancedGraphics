@@ -224,6 +224,13 @@ float3 EyeVectorToTangentSpace(float3 normal, float3 tangent)
 	return tangentSpaceEye;
 }
 
+/***********************************************
+
+MARKING SCHEME: Parallax Mapping
+
+DESCRIPTION: Standard parallax mapping extended into occlusion mapping
+
+***********************************************/
 float2 ParallaxOcclusionMapping(in float3 vectorToCamera, in float2 textureCoords, in float scaleFactor, out float parallaxHeight)
 {
 	// determine optimal number of layers

@@ -111,7 +111,7 @@ HRESULT Application::InitWindow(HINSTANCE hInstance, int nCmdShow)
     viewHeight = 480;
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-    hWnd = CreateWindow(L"TutorialWindowClass", L"Direct3D 11 Tutorial 5",
+    hWnd = CreateWindow(L"TutorialWindowClass", L"Direct3D 11",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
         nullptr);
@@ -324,6 +324,39 @@ HRESULT Application::InitDevice()
     if (FAILED(hr))
         return hr;
 
+    for (int i = 0; i < kGBufferCount; i++)
+    {
+        //create g buffers
+        D3D11_TEXTURE2D_DESC gBufferDesc = {};
+        gBufferDesc.Width = width;
+        gBufferDesc.Height = height;
+        gBufferDesc.MipLevels = 1;
+        gBufferDesc.ArraySize = 1;
+        gBufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        gBufferDesc.SampleDesc.Count = 1;
+        gBufferDesc.SampleDesc.Quality = 0;
+        gBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+        gBufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+        gBufferDesc.CPUAccessFlags = 0;
+        gBufferDesc.MiscFlags = 0;
+        hr = m_pd3dDevice->CreateTexture2D(&gBufferDesc, nullptr, m_GBufferTexture[i].ReleaseAndGetAddressOf());
+        if (FAILED(hr))
+            return hr;
+
+        hr = m_pd3dDevice->CreateRenderTargetView(m_GBufferTexture[i].Get(), nullptr, m_GBufferRTV[i].ReleaseAndGetAddressOf());
+        if (FAILED(hr))
+            return hr;
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC gBufferSRVDesc = {};
+        gBufferSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        gBufferSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        gBufferSRVDesc.Texture2D.MostDetailedMip = 0;
+        gBufferSRVDesc.Texture2D.MipLevels = -1;
+        hr = m_pd3dDevice->CreateShaderResourceView(m_GBufferTexture[i].Get(), &gBufferSRVDesc, m_GBufferSRV[i].ReleaseAndGetAddressOf());
+        if (FAILED(hr))
+            return hr;
+    }
+
     //TODO : make textures for Gbuffer
     // TODO : make textures for post-process
 
@@ -387,6 +420,40 @@ HRESULT Application::InitDevice()
 
     // Create the pixel shader
     hr = m_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, m_PostProcessPixelShader.ReleaseAndGetAddressOf());
+    pPSBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Compile the deferred vertex shader
+    pVSBlob = nullptr;
+    hr = ShaderManager::Get().CompileShaderFromFile(L"deferredLightingShader.fx", "VS", "vs_4_0", &pVSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+
+    // Create the PP vertex shader
+    hr = m_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, m_DeferredLightingVertexShader.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+    {
+        pVSBlob->Release();
+        return hr;
+    }
+
+    // Compile the pixel shader
+    pPSBlob = nullptr;
+    hr = ShaderManager::Get().CompileShaderFromFile(L"deferredLightingShader.fx", "PS", "ps_4_0", &pPSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr,
+            L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+
+    // Create the pixel shader
+    hr = m_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, m_DeferredLightingPixelShader.ReleaseAndGetAddressOf());
     pPSBlob->Release();
     if (FAILED(hr))
         return hr;
@@ -593,17 +660,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+
+/***********************************************
+
+MARKING SCHEME: Special effects pipeline
+
+DESCRIPTION: Render to texture implemented
+
+***********************************************/
 //--------------------------------------------------------------------------------------
 // Render a frame
 //--------------------------------------------------------------------------------------
 void Application::Render()
 {
-    ID3D11RenderTargetView* lightAccumulationRenderTargetViews[] =
+    //  bind g-buffer rendertargets
+    //  render to gbuffer
+    ID3D11RenderTargetView* gBufferRenderTargetViews[kGBufferCount] =
     {
-        m_LightAccumulationRTV.Get()
+        m_GBufferRTV[0].Get(),
+        m_GBufferRTV[1].Get(),
+        m_GBufferRTV[2].Get(),
+        m_GBufferRTV[3].Get()
     };
 
-    m_ImmediateContext->OMSetRenderTargets(1, lightAccumulationRenderTargetViews, m_DepthStencilView.Get());
+    m_ImmediateContext->OMSetRenderTargets(kGBufferCount, gBufferRenderTargetViews, m_DepthStencilView.Get());
     
     // Update our time
     static float t = 0.0f;
@@ -620,8 +700,10 @@ void Application::Render()
         t = (timeCur - timeStart) / 1000.0f;
     }
 
-    // Clear the back buffer
-    m_ImmediateContext->ClearRenderTargetView(m_LightAccumulationRTV.Get(), Colors::LightPink);
+    m_ImmediateContext->ClearRenderTargetView(m_GBufferRTV[0].Get(), Colors::LightPink);
+    m_ImmediateContext->ClearRenderTargetView(m_GBufferRTV[1].Get(), Colors::Black);
+    m_ImmediateContext->ClearRenderTargetView(m_GBufferRTV[2].Get(), Colors::Black);
+    m_ImmediateContext->ClearRenderTargetView(m_GBufferRTV[3].Get(), Colors::Black); //might want to change the colour to normalised normal colour
 
     // Clear the depth buffer to 1.0 (max depth)
     m_ImmediateContext->ClearDepthStencilView(m_DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -633,9 +715,10 @@ void Application::Render()
     // Update variables for the cube
     XMMATRIX mGO = XMLoadFloat4x4(gameObject.GetTransform());
 
+    XMFLOAT4X4 view = currentCamera->GetView();
     ConstantBuffer cb1;
     cb1.mWorld = XMMatrixTranspose(mGO);
-    XMMATRIX viewMatrix = XMLoadFloat4x4(&currentCamera->GetView());
+    XMMATRIX viewMatrix = XMLoadFloat4x4(&view);
     cb1.mView = XMMatrixTranspose(viewMatrix);
     cb1.mProjection = XMMatrixTranspose(projection);
     cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
@@ -685,7 +768,7 @@ void Application::Render()
     m_ImmediateContext->UpdateSubresource(m_PostProcessBuffer.Get(), 0, nullptr, &postProcessBuffer, sizeof(PostProcessBuffer), 0);
 
     // Begin g-buffer pass
-    //  bind g-buffer rendertargets
+
 
     // Draw objects to g-buffer
     ID3D11Buffer* vsBuffer[1] = {
@@ -714,8 +797,45 @@ void Application::Render()
 
     gameObject.Draw(m_ImmediateContext.Get());
 
-  
+    // Deferred Lighting
+    ID3D11RenderTargetView* lightAccumulationRenderTargetViews[4] =
+    {
+        m_LightAccumulationRTV.Get(),
+        nullptr,
+        nullptr,
+        nullptr
+    };
+    m_ImmediateContext->OMSetRenderTargets(4, lightAccumulationRenderTargetViews, m_DepthStencilView.Get());
+    // Clear the back buffer
+    m_ImmediateContext->ClearRenderTargetView(m_LightAccumulationRTV.Get(), Colors::LightPink); //render to texture
 
+    m_ImmediateContext->VSSetShader(m_DeferredLightingVertexShader.Get(), nullptr, 0);
+    m_ImmediateContext->PSSetShader(m_DeferredLightingPixelShader.Get(), nullptr, 0);
+    ID3D11ShaderResourceView* gBufferShaderResources[kGBufferCount] =
+    {
+        m_GBufferSRV[0].Get(),
+        m_GBufferSRV[1].Get(),
+        m_GBufferSRV[2].Get(),
+        m_GBufferSRV[3].Get(),
+    };
+    m_ImmediateContext->PSSetShaderResources(0, kGBufferCount, gBufferShaderResources);
+
+    ID3D11Buffer* deferredLightingBuffers[2] = {
+        m_ConstantBuffer.Get(),
+        m_LightConstantBuffer.Get(),
+    };
+    m_ImmediateContext->PSSetConstantBuffers(0, 2, deferredLightingBuffers);
+    m_ImmediateContext->Draw(3, 0);
+
+    // unbind gbuffers
+    ID3D11ShaderResourceView* nullResources[kGBufferCount] =
+    {
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+    };
+    m_ImmediateContext->PSSetShaderResources(0, kGBufferCount, nullResources);
 
     // Begin lighting pass
     //  bind light accumlation texture rendertarget
@@ -732,9 +852,17 @@ void Application::Render()
     m_ImmediateContext->OMSetRenderTargets(1, renderTargetViews, m_DepthStencilView.Get());
    
     // Clear the back buffer
-    m_ImmediateContext->ClearRenderTargetView(m_RenderTargetView.Get(), Colors::Black); 
+    m_ImmediateContext->ClearRenderTargetView(m_RenderTargetView.Get(), Colors::LightCyan); 
 
-    // draw post-process fullscreen quad
+
+    /***********************************************
+
+    MARKING SCHEME: Special Effects Pipeline
+
+    DESCRIPTION: Render of texture to full screen triangle
+
+    ***********************************************/
+    // draw post-process fullscreen
     m_ImmediateContext->VSSetShader(m_PostProcessVertexShader.Get(), nullptr, 0);
     m_ImmediateContext->PSSetShader(m_PostProcessPixelShader.Get(), nullptr, 0);
     ID3D11ShaderResourceView* psShaderResources[1] =
@@ -779,6 +907,15 @@ void Application::Update()
     }
 
     bool isKeyDown = false;
+
+
+    /***********************************************
+
+    MARKING SCHEME: Normal mapping
+
+    DESCRIPTION: Evidence the effect works correctly by moving object, camera and light source
+
+    ***********************************************/
 
     if (GetAsyncKeyState('W'))
     {

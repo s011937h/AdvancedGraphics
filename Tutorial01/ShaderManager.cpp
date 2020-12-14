@@ -1,5 +1,13 @@
 #include "ShaderManager.h"
 
+/***********************************************
+
+MARKING SCHEME: Code Structure and Style
+
+DESCRIPTION: Use of Singleton Class design pattern
+
+***********************************************/
+
 ShaderManager& ShaderManager::Get()
 {
 	static ShaderManager instance;
