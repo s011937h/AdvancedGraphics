@@ -781,7 +781,7 @@ void Application::Render()
     parallaxMaterial.ParallaxMaterial.SpecularPower = 32.0f;
     parallaxMaterial.ParallaxMaterial.UseTexture = true;
     parallaxMaterial.ParallaxMaterial.Bias = -0.01f;
-    parallaxMaterial.ParallaxMaterial.ScaleFactor = 1.0f;
+    parallaxMaterial.ParallaxMaterial.ScaleFactor = 0.1f;
     m_ImmediateContext->UpdateSubresource(m_ParallaxMaterialConstantBuffer.Get(), 0, nullptr, &parallaxMaterial, 0, 0);
 
     Light light;

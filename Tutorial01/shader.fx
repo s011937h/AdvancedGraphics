@@ -224,6 +224,14 @@ float3 TangentToWorldSpace(float3 normalMapSample, float3 normal, float3 tangent
 	return bumpNorm;
 }
 
+/***********************************************
+
+MARKING SCHEME: Advanced graphics algorithms
+
+DESCRIPTION: Deferred rendering (writing to g buffer)
+
+***********************************************/
+
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
@@ -262,35 +270,4 @@ PS_OUTPUT PS(PS_INPUT IN)
 float4 PSSolid(PS_INPUT input) : SV_Target
 {
 	return vOutputColor;
-}
-
-
-float4 ForwardPS(PS_INPUT IN) : SV_TARGET
-{
-	float4 normalMapSample = { 0, 0, 1, 1 };
-	if (Material.UseTexture)
-	{
-		normalMapSample = txNormalMap.Sample(samLinear, IN.Tex);
-	}
-	float3 tangent = normalize(IN.Tangent);
-	float3 normal = normalize(IN.Norm);
-
-	float3 worldSpaceNormal = TangentToWorldSpace(normalMapSample, normal, tangent);
-	LightingResult lit = ComputeLighting(IN.worldPos, worldSpaceNormal);
-
-	float4 texColor = { 1, 1, 1, 1 };
-
-	float4 emissive = Material.Emissive;
-	float4 ambient = Material.Ambient * GlobalAmbient;
-	float4 diffuse = Material.Diffuse * lit.Diffuse;
-	float4 specular = Material.Specular * lit.Specular;
-
-	if (Material.UseTexture)
-	{
-		texColor = txDiffuse.Sample(samLinear, IN.Tex);
-	}
-
-	float4 finalColor = (emissive + ambient + diffuse + specular) * texColor;
-
-	return finalColor;
 }

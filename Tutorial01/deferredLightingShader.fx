@@ -179,6 +179,13 @@ PS_INPUT VS( VS_INPUT input )
     return output;
 }
 
+/***********************************************
+
+MARKING SCHEME: Advanced graphics algorithms
+
+DESCRIPTION: Deferred rendering (deferred lighting calculations)
+
+***********************************************/
 
 //--------------------------------------------------------------------------------------
 // Pixel Shader

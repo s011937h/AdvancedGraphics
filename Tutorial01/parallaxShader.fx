@@ -96,6 +96,14 @@ struct PS_INPUT
 	float3 Tangent : TANGENT;
 };
 
+struct PS_OUTPUT
+{
+	float4 Diffuse : SV_TARGET0;
+	float4 Specular : SV_TARGET1;
+	float4 Emissive : SV_TARGET2;
+	float4 Normal : SV_TARGET3;
+};
+
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
 {
@@ -231,85 +239,90 @@ MARKING SCHEME: Parallax Mapping
 DESCRIPTION: Standard parallax mapping extended into occlusion mapping
 
 ***********************************************/
-float2 ParallaxOcclusionMapping(in float3 vectorToCamera, in float2 textureCoords, in float scaleFactor, out float parallaxHeight)
+
+float2 ParallaxOcclusionMapping(in float3 eyeInTangentSpace, in float2 textureCoords, in float scaleFactor)
 {
-	// determine optimal number of layers
+	float2 dimensions;
+	txDisplacementMap.GetDimensions(dimensions.x, dimensions.y);
+	float2 textureCoordsPerSize = textureCoords * dimensions;
+
+	float2 dxSize, dySize;
+	float2 dx, dy;
+
+	float4(dxSize, dx) = ddx(float4(textureCoordsPerSize, textureCoords));
+	float4(dySize, dy) = ddy(float4(textureCoordsPerSize, textureCoords));
+	
 	const float minLayers = 10;
 	const float maxLayers = 15;
-	float numLayers = lerp(maxLayers, minLayers, abs(dot(float3(0, 0, 1), vectorToCamera)));
+	int numLayers = (int)lerp(minLayers, maxLayers, dot(eyeInTangentSpace, float3(0, 0, 1)));
 
-	// Calculate height of each layer
-	float parallaxScale = scaleFactor; //adjust
-	const float layerHeight = 0.125f;
-	// current depth of the layer
-	float currentLayerHeight = 0;
-	// shift of texture coordinates for each layer
-	float2 texCoordsDelta = (parallaxScale * vectorToCamera.xy) / vectorToCamera.z / numLayers;
+	float currentHeight = 0.0f;
+	float stepSize = 1.0f / (float)numLayers;
+	float previousHeight = 1.0f;
 
-	// current texture coordinates
-	float2 currentTextureCoords = textureCoords;
+	float2 texCoordsDelta = (scaleFactor * eyeInTangentSpace.xy);
 
-	// get depth from heightmap
-	float heightFromTexture = txDisplacementMap.Sample(samLinear, currentTextureCoords).r; //getting red channel of texture (first one)
+	float2 textureOffsetPerStep = stepSize * texCoordsDelta;
+	float2 currentTexCoords = textureCoords;
 
-	float previousHeight = 0;
+	float  currentLayer = 1.0f;
 
-	float finalPreviousHeight;
-	float finalTextureCoords;
-	float finalHeightFromTexture;
+	float2 currLayerCurrH = 0;
+	float2 currLayerSizePreH = 0;
 
-	//point is above the surface
-	for(int i; i < maxLayers; i++)
+	float2 currTexMinusTexOff = 0;
+
+	int    stepIndex = 0;
+	while (stepIndex < numLayers)
 	{
-		// to the next layer
-		currentLayerHeight += layerHeight;
-		// shift of texture coordinates
-		currentTextureCoords -= texCoordsDelta; //once heightfromtexture is > currentlayerheight
+		currentTexCoords -= textureOffsetPerStep;
+		currentHeight = txDisplacementMap.SampleGrad(samLinear, currentTexCoords, dx, dy).r;
+		currentLayer -= stepSize;
 
-		previousHeight = heightFromTexture; //stop assigning if heightfromtexture is > currentlayerheight
-
-		if (heightFromTexture > currentLayerHeight)
+		if (currentHeight > currentLayer)
 		{
-			finalPreviousHeight = previousHeight;
+			currLayerCurrH = float2(currentLayer, currentHeight);
+			currLayerSizePreH = float2(currentLayer + stepSize, previousHeight);
+
+			currTexMinusTexOff = currentTexCoords - textureOffsetPerStep;
+
+			stepIndex = numLayers + 1;
+			previousHeight = currentHeight;
 		}
-
-		// get new depth from heightmap
-		heightFromTexture = txDisplacementMap.Sample(samLinear, currentTextureCoords).r; //this too
-
-		if (heightFromTexture > currentLayerHeight)
-		{			
-			finalTextureCoords  = currentTextureCoords;
-			finalHeightFromTexture = heightFromTexture;
+		else
+		{
+			stepIndex++;
+			previousHeight = currentHeight;
 		}
 	}
 
-	   // previous texture coordinates
-	float2 prevTCoords = finalTextureCoords + texCoordsDelta; //double check
+	float currLayerSizeDelta = currLayerSizePreH.x - currLayerSizePreH.y;
+	float currLayerHeightDelta = currLayerCurrH.x - currLayerCurrH.y;
+	float deltaMinusDelta = currLayerSizeDelta - currLayerHeightDelta;
+	float  parallaxOffsetAmount = 0.0f;
 
-	// heights for linear interpolation
-	float nextH = finalHeightFromTexture - currentLayerHeight;
-	float prevH = finalPreviousHeight - currentLayerHeight + layerHeight;
+	if (deltaMinusDelta == 0.0f)
+	{
+		parallaxOffsetAmount = 0.0f;
+	}
+	else
+	{
+		parallaxOffsetAmount = (currLayerCurrH.x * currLayerSizeDelta - currLayerSizePreH.x * currLayerHeightDelta) / deltaMinusDelta;
+	}
 
-	// proportions for linear interpolation
-	float weight = nextH / (nextH - prevH);
+	float2 parallaxOffset = texCoordsDelta * (1 - parallaxOffsetAmount);
+	float2 textureSample = textureCoords - parallaxOffset;
 
-	// interpolation of texture coordinates
-	float2 finalTexCoords = prevTCoords * weight + finalTextureCoords * (1.0 - weight);
-
-	// interpolation of depth values
-	parallaxHeight = currentLayerHeight + prevH * weight + nextH * (1.0 - weight);
-
-	// return result
-	return finalTexCoords;
+	return textureSample;
 }
-
 
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
-float4 PS(PS_INPUT IN) : SV_TARGET
+PS_OUTPUT PS(PS_INPUT IN) : SV_TARGET
 {
+	PS_OUTPUT output;
 	float3 tangent = normalize(IN.Tangent);
 	float3 normal = normalize(IN.Norm);
 
@@ -317,8 +330,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float3 tangentInCameraSpace = mul(tangent, View);
 	float3 eyeInTangentSpace = EyeVectorToTangentSpace(normalInCameraSpace, tangentInCameraSpace);
 
-	float parallaxHeight;
-	float2 finalTexCoords = ParallaxOcclusionMapping(eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor, parallaxHeight);
+	float2 finalTexCoords = ParallaxOcclusionMapping(eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor);
 
 	float4 normalMapSample = { 0, 0, 1, 1 };
 	if (ParallaxMaterial.UseTexture)
@@ -327,23 +339,22 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	}
 
 	float3 worldSpaceNormal = TangentToWorldSpace(normalMapSample, normal, tangent);
-	LightingResult lit = ComputeLighting(IN.worldPos, worldSpaceNormal);
+	output.Normal = float4(worldSpaceNormal * 0.5 + 0.5, 0);
 
 	float4 texColor = { 1, 1, 1, 1 };
 
-	float4 emissive = ParallaxMaterial.Emissive;
-	float4 ambient = ParallaxMaterial.Ambient * GlobalAmbient;
-	float4 diffuse = ParallaxMaterial.Diffuse * lit.Diffuse;
-	float4 specular = ParallaxMaterial.Specular * lit.Specular;
+	output.Emissive = ParallaxMaterial.Emissive;
+	output.Specular.w = ParallaxMaterial.SpecularPower;
+	output.Specular.rgb = ParallaxMaterial.Specular.rgb;
 
 	if (ParallaxMaterial.UseTexture)
 	{
 		texColor = txDiffuse.Sample(samLinear, finalTexCoords);
 	}
 
-	float4 finalColor = (emissive + ambient + diffuse + specular) * texColor;
+	output.Diffuse = texColor * ParallaxMaterial.Diffuse;
 
-	return finalColor;
+	return output;
 }
 
 //--------------------------------------------------------------------------------------

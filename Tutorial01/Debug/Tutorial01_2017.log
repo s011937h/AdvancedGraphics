@@ -6,12 +6,7 @@ E:\University\dx11\Tutorial01\Application.cpp(666,13): warning C4189: 'xPos': lo
 E:\University\dx11\Tutorial01\Application.cpp(667,13): warning C4189: 'yPos': local variable is initialized but not referenced
 E:\University\dx11\Tutorial01\Application.cpp(1006,113): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
 E:\University\dx11\Tutorial01\Application.cpp(1006,98): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-  DrawableGameObject.cpp
-E:\University\dx11\Tutorial01\DrawableGameObject.cpp(196,47): warning C4458: declaration of 'position' hides class member
-E:\University\dx11\Tutorial01\DrawableGameObject.h(46,17): message : see declaration of 'DrawableGameObject::position'
-  ShaderManager.cpp
   main.cpp
 E:\University\dx11\Tutorial01\main.cpp(8,44): warning C4316: 'Application': object allocated on the heap may not be aligned 16
   Generating Code...
-E:\University\dx11\Tutorial01\DrawableGameObject.cpp(349): warning C4715: 'DrawableGameObject::CompileCreateShaders': not all control paths return a value
   Tutorial01_2017.vcxproj -> E:\University\dx11\Debug\Tutorial01.exe

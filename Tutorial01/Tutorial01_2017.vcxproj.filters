@@ -65,5 +65,8 @@
     <FxCompile Include="deferredLightingShader.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="standardParallaxShader.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
