@@ -294,6 +294,48 @@ HRESULT Application::InitDevice()
     if (FAILED(hr))
         return hr;
 
+    // Create Depth Stencil State
+    D3D11_DEPTH_STENCIL_DESC depthEnabledDesc = {};
+    depthEnabledDesc.DepthEnable = TRUE;
+    depthEnabledDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depthEnabledDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    depthEnabledDesc.StencilEnable = FALSE;
+    depthEnabledDesc.StencilReadMask = 0;
+    depthEnabledDesc.StencilWriteMask = 0;
+    depthEnabledDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    depthEnabledDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    depthEnabledDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    depthEnabledDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    depthEnabledDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    depthEnabledDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    depthEnabledDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    depthEnabledDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+
+    hr = m_pd3dDevice->CreateDepthStencilState(&depthEnabledDesc, m_DepthTestEnabled.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
+
+    D3D11_DEPTH_STENCIL_DESC depthDisbledDesc = {};
+    depthDisbledDesc.DepthEnable = FALSE;
+    depthDisbledDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    depthDisbledDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+    depthDisbledDesc.StencilEnable = FALSE;
+    depthDisbledDesc.StencilReadMask = 0;
+    depthDisbledDesc.StencilWriteMask = 0;
+    depthDisbledDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    depthDisbledDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    depthDisbledDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    depthDisbledDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    depthDisbledDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    depthDisbledDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    depthDisbledDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    depthDisbledDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+
+    hr = m_pd3dDevice->CreateDepthStencilState(&depthDisbledDesc, m_DepthTestDisabled.ReleaseAndGetAddressOf());
+    if (FAILED(hr))
+        return hr;
+
+
     //create light accumulation
     D3D11_TEXTURE2D_DESC lightAccumulationDesc = {};
     lightAccumulationDesc.Width = width;
@@ -685,6 +727,8 @@ void Application::Render()
 
     m_ImmediateContext->OMSetRenderTargets(kGBufferCount, gBufferRenderTargetViews, m_DepthStencilView.Get());
     
+    m_ImmediateContext->OMSetDepthStencilState(m_DepthTestEnabled.Get(), 0);
+
     // Update our time
     static float t = 0.0f;
     if (driverType == D3D_DRIVER_TYPE_REFERENCE)
@@ -819,6 +863,8 @@ void Application::Render()
         m_GBufferSRV[3].Get(),
     };
     m_ImmediateContext->PSSetShaderResources(0, kGBufferCount, gBufferShaderResources);
+
+    m_ImmediateContext->OMSetDepthStencilState(m_DepthTestDisabled.Get(), 0);
 
     ID3D11Buffer* deferredLightingBuffers[2] = {
         m_ConstantBuffer.Get(),

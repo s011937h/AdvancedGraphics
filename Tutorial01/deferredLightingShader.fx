@@ -129,7 +129,7 @@ LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, f
 	return result;
 }
 
-LightingResult ComputeLighting(float4 vertexPos, float3 N, float SpecularPower)
+float4 ComputeLighting(float4 vertexPos, float3 N, float4 diffuse, float3 specular, float4 emissive, float SpecularPower)
 {
 	float3 vertexToEye = normalize(EyePosition - vertexPos).xyz;
 
@@ -149,10 +149,11 @@ LightingResult ComputeLighting(float4 vertexPos, float3 N, float SpecularPower)
 		totalResult.Specular += result.Specular;
 	}
 
-	totalResult.Diffuse = saturate(totalResult.Diffuse);
-	totalResult.Specular = saturate(totalResult.Specular);
+	totalResult.Diffuse = saturate(totalResult.Diffuse) * diffuse;
+	totalResult.Specular = saturate(totalResult.Specular) * float4(specular.xyz, 1);
 
-	return totalResult;
+	float4 finalColour = (emissive + GlobalAmbient + totalResult.Diffuse + totalResult.Specular);
+	return finalColour;
 }
 
 //--------------------------------------------------------------------------------------
@@ -193,9 +194,9 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 diffuse = txDiffuse.Sample(samLinear, coordinates);
 	float4 specular = txSpecular.Sample(samLinear, coordinates);
 	float4 emissive = txEmissive.Sample(samLinear, coordinates);
-	float4 normal = txNormal.Sample(samLinear, coordinates);
+	float4 normal = txNormal.Sample(samLinear, coordinates) * 2.0f - 1.0f;
 
-	float4 lightOutput = float4(normal.rgb / 2 + 0.5, 1);
+	float4 lightOutput = ComputeLighting(IN.Pos, normal.xyz, diffuse, specular.xyz, emissive, specular.w);
 	return lightOutput;
 }
 

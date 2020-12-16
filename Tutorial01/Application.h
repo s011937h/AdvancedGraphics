@@ -68,6 +68,9 @@ private:
 	ComPtr<ID3D11RenderTargetView> m_GBufferRTV[kGBufferCount];
 	ComPtr<ID3D11ShaderResourceView> m_GBufferSRV[kGBufferCount];
 
+	ComPtr<ID3D11DepthStencilState> m_DepthTestDisabled;
+	ComPtr<ID3D11DepthStencilState> m_DepthTestEnabled;
+
 	bool colourInversion = false;
 
 

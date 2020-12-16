@@ -240,7 +240,7 @@ PS_OUTPUT PS(PS_INPUT IN)
 	float3 normal = normalize(IN.Norm);
 
 	float3 worldSpaceNormal = TangentToWorldSpace(normalMapSample, normal, tangent);
-	output.Normal = float4(worldSpaceNormal, 0);
+	output.Normal = float4(worldSpaceNormal * 0.5 + 0.5, 0);
 
 	output.Emissive = Material.Emissive;
 	output.Specular.w = Material.SpecularPower;

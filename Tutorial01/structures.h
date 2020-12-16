@@ -134,7 +134,7 @@ struct LightPropertiesConstantBuffer
 {
 	LightPropertiesConstantBuffer()
 		: EyePosition(0, 0, 0, 1)
-		, GlobalAmbient(0.2f, 0.2f, 0.8f, 1.0f)
+		, GlobalAmbient(0.02f, 0.02f, 0.05f, 1.0f)
 	{}
 
 	DirectX::XMFLOAT4   EyePosition;
