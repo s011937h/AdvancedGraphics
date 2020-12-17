@@ -236,7 +236,7 @@ float3 EyeVectorToTangentSpace(float3 normal, float3 tangent)
 
 MARKING SCHEME: Parallax Mapping
 
-DESCRIPTION: Standard parallax mapping extended into occlusion mapping
+DESCRIPTION: Parallax occlusion mapping
 
 ***********************************************/
 

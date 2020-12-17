@@ -31,11 +31,19 @@ public:
 	ComPtr<ID3D11SamplerState>			GetTextureSamplerState() { return pSamplerLinear; }
 	MaterialPropertiesConstantBuffer	GetMaterial() { return material;}
 	void								SetPosition(XMFLOAT3 position);
-	bool								isParallax;
 	void								CleaupGameObject();
 
+	enum MaterialType {
+		material_NormalMapped,
+		material_StandardParallax,
+		material_ParallaxOcclusion
+	};
+
+	MaterialType GetMaterialType() { return m_MaterialType; }
+	void SetMaterialType(MaterialType materialType) { m_MaterialType = materialType; }
+
 private:
-	
+	//TODO: m_ all of these
 	XMFLOAT4X4							world;
 
 	ComPtr<ID3D11Buffer>				pVertexBuffer;
@@ -55,10 +63,14 @@ private:
 	ComPtr<ID3D11PixelShader> pPixelShader;
 	ComPtr<ID3D11PixelShader> pPixelShaderSolid;
 	ComPtr<ID3D11PixelShader> pParallaxPixelShader;
+	ComPtr<ID3D11VertexShader> m_StandardParallaxVertexShader;
+	ComPtr<ID3D11PixelShader> m_StandardParallaxPixelShader;
 
 	ComPtr<ID3D11InputLayout> pVertexLayout;
 
 	HRESULT CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext);
+
+	MaterialType m_MaterialType;
 	
 };
 

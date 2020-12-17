@@ -11,7 +11,7 @@ DrawableGameObject::DrawableGameObject()
 	pIndexBuffer = nullptr;
 	pTextureRV = nullptr;
 	pSamplerLinear = nullptr;
-	isParallax = false;
+	m_MaterialType = material_NormalMapped;
 
 	pVertexShader = nullptr;
     pParallaxVertexShader = nullptr;
@@ -210,7 +210,7 @@ void DrawableGameObject::Update(float t)
 
 void DrawableGameObject::Draw(ID3D11DeviceContext* pImmediateContext)
 {
-	if (isParallax)
+	if (m_MaterialType == material_ParallaxOcclusion)
 	{
 		pImmediateContext->VSSetShader(pParallaxVertexShader.Get(), nullptr, 0);
 		pImmediateContext->PSSetShader(pParallaxPixelShader.Get(), nullptr, 0);
@@ -221,7 +221,7 @@ void DrawableGameObject::Draw(ID3D11DeviceContext* pImmediateContext)
 		};
 		pImmediateContext->PSSetShaderResources(0, 3, psShaderResources);
 	}
-	else
+	else if (m_MaterialType == material_NormalMapped)
 	{
 		pImmediateContext->VSSetShader(pVertexShader.Get(), nullptr, 0);
 		pImmediateContext->PSSetShader(pPixelShader.Get(), nullptr, 0);
@@ -231,6 +231,17 @@ void DrawableGameObject::Draw(ID3D11DeviceContext* pImmediateContext)
 			pNormalTextureRV.Get()
 		};
 		pImmediateContext->PSSetShaderResources(0, 2, psShaderResources);
+	}
+	else if (m_MaterialType == material_StandardParallax)
+	{
+		pImmediateContext->VSSetShader(m_StandardParallaxVertexShader.Get(), nullptr, 0);
+		pImmediateContext->PSSetShader(m_StandardParallaxPixelShader.Get(), nullptr, 0);
+		ID3D11ShaderResourceView* psShaderResources[3] = {
+			pParallaxColorRV.Get(),
+			pParallaxTextureRV.Get(),
+			pParallaxDisplacementMapRV.Get()
+		};
+		pImmediateContext->PSSetShaderResources(0, 3, psShaderResources);
 	}
 
 	ID3D11SamplerState* psSamplers [1] = {
@@ -346,6 +357,40 @@ HRESULT DrawableGameObject::CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D1
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return hr;
+
+	// Compile the standard parallax vertex shader
+	pVSBlob = nullptr;
+	hr = ShaderManager::Get().CompileShaderFromFile(L"standardParallaxShader.fx", "VS", "vs_4_0", &pVSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(nullptr,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+
+	// Create the standard parallax vertex shader
+	hr = pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, m_StandardParallaxVertexShader.ReleaseAndGetAddressOf());
+	if (FAILED(hr))
+	{
+		pVSBlob->Release();
+		return hr;
+	}
+
+	// Compile the standard parallax pixel shader
+	pPSBlob = nullptr;
+	hr = ShaderManager::Get().CompileShaderFromFile(L"standardParallaxShader.fx", "PS", "ps_4_0", &pPSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(nullptr,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+
+	// Create the standard parallax pixel shader
+	hr = pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, m_StandardParallaxPixelShader.ReleaseAndGetAddressOf());
+	pPSBlob->Release();
+	if (FAILED(hr))
+		return hr;
 }
 
 void DrawableGameObject::CleaupGameObject()
@@ -364,5 +409,7 @@ void DrawableGameObject::CleaupGameObject()
 	if (pParallaxColorRV) pParallaxColorRV.Reset();
 	if (pParallaxDisplacementMapRV) pParallaxDisplacementMapRV.Reset();
 	if (pSamplerLinear) pSamplerLinear.Reset();
+	if (m_StandardParallaxVertexShader) m_StandardParallaxVertexShader.Reset();
+	if (m_StandardParallaxPixelShader) m_StandardParallaxPixelShader.Reset();
 }
 

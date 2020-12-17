@@ -476,7 +476,7 @@ HRESULT Application::InitDevice()
         return hr;
     }
 
-    // Create the PP vertex shader
+    // Create the deferred vertex shader
     hr = m_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, m_DeferredLightingVertexShader.ReleaseAndGetAddressOf());
     if (FAILED(hr))
     {
@@ -820,7 +820,8 @@ void Application::Render()
     };
     m_ImmediateContext->VSSetConstantBuffers(0, 1, vsBuffer);
 
-    if (gameObject.isParallax)
+    //both materials use the same constant buffer
+    if (gameObject.GetMaterialType() == DrawableGameObject::material_ParallaxOcclusion || gameObject.GetMaterialType() == DrawableGameObject::material_StandardParallax)
     {
         ID3D11Buffer* psBuffers[3] = {
         m_ConstantBuffer.Get(),
@@ -1010,15 +1011,21 @@ void Application::Update()
 
 void Application::CharTyped(char charTyped)
 {
+    if (charTyped == 'o')
+    {
+        gameObject.SetMaterialType(DrawableGameObject::material_StandardParallax);
+        CleanupDevice();
+        InitDevice();
+    }
     if (charTyped == 'p')
     {
-        gameObject.isParallax = true;
+        gameObject.SetMaterialType(DrawableGameObject::material_ParallaxOcclusion);
         CleanupDevice();
         InitDevice();
     }
     if (charTyped == 'n')
     {
-        gameObject.isParallax = false;
+        gameObject.SetMaterialType(DrawableGameObject::material_NormalMapped);
         CleanupDevice();
         InitDevice();
     }

@@ -63,8 +63,6 @@ private:
 	ComPtr<ID3D11PixelShader> m_PostProcessPixelShader;
 	ComPtr<ID3D11VertexShader> m_DeferredLightingVertexShader;
 	ComPtr<ID3D11PixelShader> m_DeferredLightingPixelShader;
-	ComPtr<ID3D11VertexShader> m_StandardParallaxVertexShader;
-	ComPtr<ID3D11PixelShader> m_StandardParallaxPixelShader;
 
 	ComPtr<ID3D11Texture2D> m_GBufferTexture[kGBufferCount];
 	ComPtr<ID3D11RenderTargetView> m_GBufferRTV[kGBufferCount];
