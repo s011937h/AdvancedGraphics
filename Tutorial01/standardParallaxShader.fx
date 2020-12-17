@@ -246,6 +246,10 @@ float2 ParallaxMapping(in float3 eyeInTangentSpace, in float2 textureCoords, in 
 	float2 currentTexCoords = textureCoords;
 	float currentHeight = txDisplacementMap.Sample(samLinear, currentTexCoords).r;
 	float  parallaxOffsetAmount = currentHeight;
+	if (parallaxOffsetAmount > 0.1f)
+	{
+		parallaxOffsetAmount = 0.1f;
+	}
 	float2 parallaxOffset = texCoordsDelta * (1 - parallaxOffsetAmount);
 	float2 textureSample = textureCoords - parallaxOffset;
 
@@ -266,7 +270,7 @@ PS_OUTPUT PS(PS_INPUT IN) : SV_TARGET
 	float3 tangentInCameraSpace = mul(tangent, View);
 	float3 eyeInTangentSpace = EyeVectorToTangentSpace(normalInCameraSpace, tangentInCameraSpace);
 
-	float2 finalTexCoords = ParallaxMapping(eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor);
+	float2 finalTexCoords = ParallaxMapping(-eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor);
 
 	float4 normalMapSample = { 0, 0, 1, 1 };
 	if (ParallaxMaterial.UseTexture)

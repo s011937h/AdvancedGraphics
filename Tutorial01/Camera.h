@@ -15,31 +15,22 @@ public:
 	Camera(UINT windowWidth, UINT windowHeight, XMVECTOR eye, XMVECTOR at, XMVECTOR up, bool isLookAt);
 	~Camera();
 
-	XMFLOAT4 GetPosition() const { return position; }
-	//XMFLOAT4 GetLookAt() const { return _lookAt; }
+	XMFLOAT4 GetPosition() const { return m_Position; }
 
-	XMFLOAT4X4 GetView() const { return view; }
-	XMFLOAT4X4 GetProjection() const { return projection; }
+	XMFLOAT4X4 GetView() const { return m_View; }
+	XMFLOAT4X4 GetProjection() const { return m_Projection; }
 
-	void Update(XMVECTOR eye, float mouseDeltaX, float mouseDeltaY);
-	void MoveCamera(float x, float y, float z, float roll, float pitch, float yaw);
+	void MoveCamera(float verticalMovement, float horizontalMovement, float mouseDeltaX, float mouseDeltaY);
 
 private:
-	XMFLOAT4X4 view;
-	XMFLOAT4X4 projection;
+	XMFLOAT4X4 m_View;
+	XMFLOAT4X4 m_Projection;
 
-	XMFLOAT4 position;
-	//XMFLOAT4 _up;
-	//XMFLOAT4 _lookAt;
+	XMFLOAT4 m_Position;
 
-	//XMFLOAT4 _eyeVec;
-	//XMFLOAT4 _atVec;
-	//XMFLOAT4 _upVec;
-	//bool _isLookAt;
-
-	float roll;
-	float pitch;
-	float yaw;
+	float m_Roll;
+	float m_Pitch;
+	float m_Yaw;
 
 	const float PI = 3.14159265358979f;
 

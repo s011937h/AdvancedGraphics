@@ -330,7 +330,7 @@ PS_OUTPUT PS(PS_INPUT IN) : SV_TARGET
 	float3 tangentInCameraSpace = mul(tangent, View);
 	float3 eyeInTangentSpace = EyeVectorToTangentSpace(normalInCameraSpace, tangentInCameraSpace);
 
-	float2 finalTexCoords = ParallaxOcclusionMapping(eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor);
+	float2 finalTexCoords = ParallaxOcclusionMapping(-eyeInTangentSpace, IN.Tex, ParallaxMaterial.ScaleFactor);
 
 	float4 normalMapSample = { 0, 0, 1, 1 };
 	if (ParallaxMaterial.UseTexture)

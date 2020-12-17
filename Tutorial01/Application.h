@@ -34,8 +34,8 @@ class Application
 private:
 	HINSTANCE				hInst;
 	HWND					hWnd;
-	D3D_DRIVER_TYPE			driverType;
-	D3D_FEATURE_LEVEL		featureLevel;
+	D3D_DRIVER_TYPE			m_DriverType;
+	D3D_FEATURE_LEVEL		m_FeatureLevel;
 	ComPtr<ID3D11Device>    m_pd3dDevice;
 	ComPtr<ID3D11Device1>   m_pd3dDevice1;
 	ComPtr<ID3D11Debug>		m_d3dDebug;
@@ -71,16 +71,16 @@ private:
 	ComPtr<ID3D11DepthStencilState> m_DepthTestDisabled;
 	ComPtr<ID3D11DepthStencilState> m_DepthTestEnabled;
 
-	bool colourInversion = false;
+	bool m_ColourInversion = false;
 
 
-	XMMATRIX                world1; //add new world when you add new object
-	XMMATRIX                projection;
+	XMMATRIX                m_World1; //add new world when you add new object
+	XMMATRIX                m_Projection;
 
-	int						viewWidth;
-	int						viewHeight;
+	int						m_ViewWidth;
+	int						m_ViewHeight;
 
-	DrawableGameObject		gameObject;
+	DrawableGameObject		m_GameObject;
 
 	HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 	HRESULT InitDevice();
@@ -88,22 +88,11 @@ private:
 	HRESULT	InitWorld(int width, int height);
 	void	CleanupDevice();
 
-	UINT windowHeight;
-	UINT windowWidth;
+	UINT m_WindowHeight;
+	UINT m_WindowWidth;
 
-	XMFLOAT4 eyePosition;
-
-	float _XValue;
-	float _YValue;
-	float _ZValue;
-
-	std::unique_ptr<Camera> currentCamera;
-	XMFLOAT3 uvf3 = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	XMFLOAT3 movementVector;
-	XMFLOAT3 newCameraPos;
-	XMFLOAT3 cameraPos;
-	XMFLOAT4X4 cameraPosM;
-
+	XMFLOAT4 m_EyePosition;
+	std::unique_ptr<Camera> m_CurrentCamera;
 
 public:
 	Application();

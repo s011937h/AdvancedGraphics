@@ -24,12 +24,12 @@ public:
 	HRESULT								InitGameObjectMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext);
 	void								Update(float t);
 	void								Draw(ID3D11DeviceContext* pContext);
-	ComPtr<ID3D11Buffer>				GetVertexBuffer() { return pVertexBuffer; }
-	ComPtr<ID3D11Buffer>				GetIndexBuffer() { return pIndexBuffer; }
-	ComPtr<ID3D11ShaderResourceView>	GetTextureResourceView() { return pTextureRV; 	}
-	XMFLOAT4X4*							GetTransform() { return &world; }
-	ComPtr<ID3D11SamplerState>			GetTextureSamplerState() { return pSamplerLinear; }
-	MaterialPropertiesConstantBuffer	GetMaterial() { return material;}
+	ComPtr<ID3D11Buffer>				GetVertexBuffer() { return m_VertexBuffer; }
+	ComPtr<ID3D11Buffer>				GetIndexBuffer() { return m_IndexBuffer; }
+	ComPtr<ID3D11ShaderResourceView>	GetTextureResourceView() { return m_TextureRV; 	}
+	XMFLOAT4X4*							GetTransform() { return &m_World; }
+	ComPtr<ID3D11SamplerState>			GetTextureSamplerState() { return m_SamplerLinear; }
+	MaterialPropertiesConstantBuffer	GetMaterial() { return m_Material;}
 	void								SetPosition(XMFLOAT3 position);
 	void								CleaupGameObject();
 
@@ -42,35 +42,39 @@ public:
 	MaterialType GetMaterialType() { return m_MaterialType; }
 	void SetMaterialType(MaterialType materialType) { m_MaterialType = materialType; }
 
+	bool GetIsSpinning() { return m_IsSpinning; }
+	void SetIsSpinning(bool isSpinning) { m_IsSpinning = isSpinning; }
+
 private:
 	//TODO: m_ all of these
-	XMFLOAT4X4							world;
+	XMFLOAT4X4							m_World;
 
-	ComPtr<ID3D11Buffer>				pVertexBuffer;
-	ComPtr<ID3D11Buffer>				pIndexBuffer;
-	ComPtr<ID3D11ShaderResourceView>	pTextureRV;
-	ComPtr<ID3D11SamplerState>			pSamplerLinear;
-	MaterialPropertiesConstantBuffer	material;
-	XMFLOAT3							position;
+	ComPtr<ID3D11Buffer>				m_VertexBuffer;
+	ComPtr<ID3D11Buffer>				m_IndexBuffer;
+	ComPtr<ID3D11ShaderResourceView>	m_TextureRV;
+	ComPtr<ID3D11SamplerState>			m_SamplerLinear;
+	MaterialPropertiesConstantBuffer	m_Material;
+	XMFLOAT3							m_Position;
 
-	ComPtr<ID3D11ShaderResourceView>	pNormalTextureRV;
-	ComPtr<ID3D11ShaderResourceView>	pParallaxTextureRV;
-	ComPtr<ID3D11ShaderResourceView>	pParallaxColorRV;
-	ComPtr<ID3D11ShaderResourceView>	pParallaxDisplacementMapRV;
+	ComPtr<ID3D11ShaderResourceView>	m_NormalTextureRV;
+	ComPtr<ID3D11ShaderResourceView>	m_ParallaxTextureRV;
+	ComPtr<ID3D11ShaderResourceView>	m_ParallaxColorRV;
+	ComPtr<ID3D11ShaderResourceView>	m_ParallaxDisplacementMapRV;
 
-	ComPtr<ID3D11VertexShader> pVertexShader;
-	ComPtr<ID3D11VertexShader> pParallaxVertexShader;
-	ComPtr<ID3D11PixelShader> pPixelShader;
-	ComPtr<ID3D11PixelShader> pPixelShaderSolid;
-	ComPtr<ID3D11PixelShader> pParallaxPixelShader;
+	ComPtr<ID3D11VertexShader> m_VertexShader;
+	ComPtr<ID3D11VertexShader> m_ParallaxVertexShader;
+	ComPtr<ID3D11PixelShader> m_PixelShader;
+	ComPtr<ID3D11PixelShader> m_PixelShaderSolid;
+	ComPtr<ID3D11PixelShader> m_ParallaxPixelShader;
 	ComPtr<ID3D11VertexShader> m_StandardParallaxVertexShader;
 	ComPtr<ID3D11PixelShader> m_StandardParallaxPixelShader;
 
-	ComPtr<ID3D11InputLayout> pVertexLayout;
+	ComPtr<ID3D11InputLayout> m_VertexLayout;
 
 	HRESULT CompileCreateShaders(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext);
 
 	MaterialType m_MaterialType;
+	bool m_IsSpinning;
 	
 };
 

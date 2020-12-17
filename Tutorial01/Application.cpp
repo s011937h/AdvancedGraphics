@@ -9,6 +9,7 @@ int g_mousePositionY = 0;
 
 int g_mouseDeltaX = 0;
 int g_mouseDeltaY = 0;
+bool g_mouseLeftButtonDown = false;
 
 Application * g_Application = nullptr;
 
@@ -16,8 +17,8 @@ Application::Application()
 {
     hInst = nullptr;
     hWnd = nullptr;
-    driverType = D3D_DRIVER_TYPE_NULL;
-    featureLevel = D3D_FEATURE_LEVEL_11_0;
+    m_DriverType = D3D_DRIVER_TYPE_NULL;
+    m_FeatureLevel = D3D_FEATURE_LEVEL_11_0;
     m_pd3dDevice = nullptr;
     m_pd3dDevice1 = nullptr;
     m_ImmediateContext = nullptr;
@@ -37,8 +38,8 @@ Application::Application()
     m_SamplerLinear = nullptr;
     m_SamplerNormal = nullptr;
 
-    currentCamera = nullptr;
-    eyePosition = XMFLOAT4(0.0f, 0.0f, -3.0f, 1.0f);
+    m_CurrentCamera = nullptr;
+    m_EyePosition = XMFLOAT4(0.0f, 0.0f, -3.0f, 1.0f);
 
     g_Application = this;
 }
@@ -62,8 +63,8 @@ HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
 
     RECT rc;
     GetClientRect(hWnd, &rc);
-    windowWidth = rc.right - rc.left;
-    windowHeight = rc.bottom - rc.top;
+    m_WindowWidth = rc.right - rc.left;
+    m_WindowHeight = rc.bottom - rc.top;
 
     if (FAILED(InitDevice()))
     {
@@ -72,11 +73,8 @@ HRESULT Application::Initialise(HINSTANCE hInstance, int nCmdShow)
         return E_FAIL;
     }
 
-    _XValue = 0.0f;
-    _YValue = 0.0f;
-    _ZValue = -3.0f;
-    currentCamera = std::make_unique<Camera>(windowWidth, windowHeight, XMVectorSet(_XValue, _YValue, _ZValue, 1.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), false);
-    eyePosition = currentCamera->GetPosition();
+    m_CurrentCamera = std::make_unique<Camera>(m_WindowWidth, m_WindowHeight, XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), false);
+    m_EyePosition = m_CurrentCamera->GetPosition();
 
     return S_OK;
 }
@@ -107,8 +105,8 @@ HRESULT Application::InitWindow(HINSTANCE hInstance, int nCmdShow)
     hInst = hInstance;
     RECT rc = { 0, 0, 640, 480 };
 
-    viewWidth = 640;
-    viewHeight = 480;
+    m_ViewWidth = 640;
+    m_ViewHeight = 480;
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
     hWnd = CreateWindow(L"TutorialWindowClass", L"Direct3D 11",
@@ -162,15 +160,15 @@ HRESULT Application::InitDevice()
 
     for (UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; driverTypeIndex++)
     {
-        driverType = driverTypes[driverTypeIndex];
-        hr = D3D11CreateDevice(nullptr, driverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
-            D3D11_SDK_VERSION, m_pd3dDevice.ReleaseAndGetAddressOf(), &featureLevel, m_ImmediateContext.ReleaseAndGetAddressOf());
+        m_DriverType = driverTypes[driverTypeIndex];
+        hr = D3D11CreateDevice(nullptr, m_DriverType, nullptr, createDeviceFlags, featureLevels, numFeatureLevels,
+            D3D11_SDK_VERSION, m_pd3dDevice.ReleaseAndGetAddressOf(), &m_FeatureLevel, m_ImmediateContext.ReleaseAndGetAddressOf());
 
         if (hr == E_INVALIDARG)
         {
             // DirectX 11.0 platforms will not recognize D3D_FEATURE_LEVEL_11_1 so we need to retry without it
-            hr = D3D11CreateDevice(nullptr, driverType, nullptr, createDeviceFlags, &featureLevels[1], numFeatureLevels - 1,
-                D3D11_SDK_VERSION, m_pd3dDevice.ReleaseAndGetAddressOf(), &featureLevel, m_ImmediateContext.ReleaseAndGetAddressOf());
+            hr = D3D11CreateDevice(nullptr, m_DriverType, nullptr, createDeviceFlags, &featureLevels[1], numFeatureLevels - 1,
+                D3D11_SDK_VERSION, m_pd3dDevice.ReleaseAndGetAddressOf(), &m_FeatureLevel, m_ImmediateContext.ReleaseAndGetAddressOf());
         }
 
         if (SUCCEEDED(hr))
@@ -428,7 +426,7 @@ HRESULT Application::InitDevice()
         return hr;
     }
 
-    hr = gameObject.InitGameObjectMesh(m_pd3dDevice.Get(), m_ImmediateContext.Get());
+    hr = m_GameObject.InitGameObjectMesh(m_pd3dDevice.Get(), m_ImmediateContext.Get());
     if (FAILED(hr))
         return hr;
 
@@ -589,10 +587,10 @@ HRESULT	Application::InitMesh()
 HRESULT Application::InitWorld(int width, int height)
 {
     // Initialize the world matrix
-    world1 = XMMatrixIdentity();
+    m_World1 = XMMatrixIdentity();
 
     // Initialize the projection matrix
-    projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);
+    m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, width / (FLOAT)height, 0.01f, 100.0f);
 
     return S_OK;
 }
@@ -611,7 +609,7 @@ void Application::CleanupDevice()
 
     if (m_ImmediateContext) m_ImmediateContext->ClearState();
 
-    gameObject.CleaupGameObject();
+    m_GameObject.CleaupGameObject();
     if (m_ConstantBuffer) m_ConstantBuffer.Reset();
     if (m_MaterialConstantBuffer) m_MaterialConstantBuffer.Reset();
     if (m_ParallaxMaterialConstantBuffer) m_ParallaxMaterialConstantBuffer.Reset();
@@ -665,6 +663,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         int xPos = GET_X_LPARAM(lParam);
         int yPos = GET_Y_LPARAM(lParam);
+        g_mouseLeftButtonDown = true;
+        break;
+    }
+    case WM_LBUTTONUP:
+    {
+        g_mouseLeftButtonDown = false;
         break;
     }
     case WM_PAINT:
@@ -705,9 +709,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 /***********************************************
 
-MARKING SCHEME: Special effects pipeline
+MARKING SCHEME: Special effects pipeline, advanced graphics
 
-DESCRIPTION: Render to texture implemented
+DESCRIPTION: Render to texture implemented, deferred rendering
 
 ***********************************************/
 //--------------------------------------------------------------------------------------
@@ -731,7 +735,7 @@ void Application::Render()
 
     // Update our time
     static float t = 0.0f;
-    if (driverType == D3D_DRIVER_TYPE_REFERENCE)
+    if (m_DriverType == D3D_DRIVER_TYPE_REFERENCE)
     {
         t += (float)XM_PI * 0.0125f;
     }
@@ -754,17 +758,17 @@ void Application::Render()
 
 
     // Update variables for a cube
-    gameObject.Update(t);
+    m_GameObject.Update(t);
 
     // Update variables for the cube
-    XMMATRIX mGO = XMLoadFloat4x4(gameObject.GetTransform());
+    XMMATRIX mGO = XMLoadFloat4x4(m_GameObject.GetTransform());
 
-    XMFLOAT4X4 view = currentCamera->GetView();
+    XMFLOAT4X4 view = m_CurrentCamera->GetView();
     ConstantBuffer cb1;
     cb1.mWorld = XMMatrixTranspose(mGO);
     XMMATRIX viewMatrix = XMLoadFloat4x4(&view);
     cb1.mView = XMMatrixTranspose(viewMatrix);
-    cb1.mProjection = XMMatrixTranspose(projection);
+    cb1.mProjection = XMMatrixTranspose(m_Projection);
     cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
     m_ImmediateContext->UpdateSubresource(m_ConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
@@ -795,7 +799,7 @@ void Application::Render()
 
 
     // set up the light
-    XMFLOAT4 LightPosition(eyePosition);
+    XMFLOAT4 LightPosition(m_EyePosition);
     light.Position = LightPosition;
     XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
     LightDirection = XMVector3Normalize(LightDirection);
@@ -808,12 +812,10 @@ void Application::Render()
 
     //update values for post processing
     PostProcessBuffer postProcessBuffer = {};
-    postProcessBuffer.enableColourInversion = colourInversion;
+    postProcessBuffer.enableColourInversion = m_ColourInversion;
     m_ImmediateContext->UpdateSubresource(m_PostProcessBuffer.Get(), 0, nullptr, &postProcessBuffer, sizeof(PostProcessBuffer), 0);
 
     // Begin g-buffer pass
-
-
     // Draw objects to g-buffer
     ID3D11Buffer* vsBuffer[1] = {
       m_ConstantBuffer.Get()
@@ -821,7 +823,7 @@ void Application::Render()
     m_ImmediateContext->VSSetConstantBuffers(0, 1, vsBuffer);
 
     //both materials use the same constant buffer
-    if (gameObject.GetMaterialType() == DrawableGameObject::material_ParallaxOcclusion || gameObject.GetMaterialType() == DrawableGameObject::material_StandardParallax)
+    if (m_GameObject.GetMaterialType() == DrawableGameObject::material_ParallaxOcclusion || m_GameObject.GetMaterialType() == DrawableGameObject::material_StandardParallax)
     {
         ID3D11Buffer* psBuffers[3] = {
         m_ConstantBuffer.Get(),
@@ -840,7 +842,7 @@ void Application::Render()
         m_ImmediateContext->PSSetConstantBuffers(0, 3, psBuffers);
     }
 
-    gameObject.Draw(m_ImmediateContext.Get());
+    m_GameObject.Draw(m_ImmediateContext.Get());
 
     // Deferred Lighting
     ID3D11RenderTargetView* lightAccumulationRenderTargetViews[4] =
@@ -884,10 +886,6 @@ void Application::Render()
     };
     m_ImmediateContext->PSSetShaderResources(0, kGBufferCount, nullResources);
 
-    // Begin lighting pass
-    //  bind light accumlation texture rendertarget
-
-    // draw light(s)
 
     // begin post-process pass
     //  bind swapchain rendertarget
@@ -938,7 +936,7 @@ void Application::Update()
     // Update our time
     static float t = 0.0f;
 
-    if (driverType == D3D_DRIVER_TYPE_REFERENCE)
+    if (m_DriverType == D3D_DRIVER_TYPE_REFERENCE)
     {
         t += (float)XM_PI * 0.0125f;
     }
@@ -953,8 +951,7 @@ void Application::Update()
         t = (dwTimeCur - dwTimeStart) / 1000.0f;
     }
 
-    bool isKeyDown = false;
-
+  
 
     /***********************************************
 
@@ -963,49 +960,33 @@ void Application::Update()
     DESCRIPTION: Evidence the effect works correctly by moving object, camera and light source
 
     ***********************************************/
-
+    bool isKeyDown = false;
+    float verticalMovement = 0.0f;
+    float horizontalMovement = 0.0f;
     if (GetAsyncKeyState('W'))
     {
-        uvf3 = XMFLOAT3(0.0f, 0.0001f, 0.0f);
+        verticalMovement = 0.0001f;
         isKeyDown = true;
     }
     if (GetAsyncKeyState('S'))
     {
-        uvf3 = XMFLOAT3(0.0f, -0.0001f, 0.0f);
+        verticalMovement = -0.0001f;
         isKeyDown = true;
     }
     if (GetAsyncKeyState('D'))
     {
-        uvf3 = XMFLOAT3(0.0001f, 0.0f, 0.0f);
+        horizontalMovement = 0.0001f;
         isKeyDown = true;
     }
     if (GetAsyncKeyState('A'))
     {
-        uvf3 = XMFLOAT3(-0.0001f, 0.0f, 0.0f);
+        horizontalMovement = -0.0001f;
         isKeyDown = true;
     }
-    if (isKeyDown)
+    if (isKeyDown || g_mouseLeftButtonDown)
     {
-        XMVECTOR unitVector = XMLoadFloat3(&uvf3);
-
-        cameraPos = XMFLOAT3(_XValue, _YValue, _ZValue);
-        XMVECTOR cameraPosV = XMLoadFloat3(&cameraPos);
-
-        XMVECTOR newCameraPosV;
-        newCameraPosV = unitVector + cameraPosV;
-        XMStoreFloat3(&newCameraPos, newCameraPosV);
-        _XValue = newCameraPos.x;
-        _YValue = newCameraPos.y;
-        _ZValue = newCameraPos.z;
-
-        XMStoreFloat4x4(&cameraPosM, XMMatrixTranslation(_XValue, _YValue, _ZValue));
-        XMMATRIX cameraPositionM = XMLoadFloat4x4(&cameraPosM);
-
-        cameraPosV = XMVector3TransformCoord(cameraPosV, cameraPositionM);
-        XMStoreFloat3(&newCameraPos, cameraPosV);
-
-        currentCamera->Update(XMVectorSet(newCameraPos.x, newCameraPos.y, newCameraPos.z, 1.0f), g_mouseDeltaX, g_mouseDeltaY);
-        eyePosition = currentCamera->GetPosition();
+        m_CurrentCamera->MoveCamera(verticalMovement, horizontalMovement, g_mouseDeltaX, g_mouseDeltaY);
+        m_EyePosition = m_CurrentCamera->GetPosition();
     }
 }
 
@@ -1013,25 +994,33 @@ void Application::CharTyped(char charTyped)
 {
     if (charTyped == 'o')
     {
-        gameObject.SetMaterialType(DrawableGameObject::material_StandardParallax);
+        m_GameObject.SetMaterialType(DrawableGameObject::material_StandardParallax);
         CleanupDevice();
         InitDevice();
     }
     if (charTyped == 'p')
     {
-        gameObject.SetMaterialType(DrawableGameObject::material_ParallaxOcclusion);
+        m_GameObject.SetMaterialType(DrawableGameObject::material_ParallaxOcclusion);
         CleanupDevice();
         InitDevice();
     }
     if (charTyped == 'n')
     {
-        gameObject.SetMaterialType(DrawableGameObject::material_NormalMapped);
+        m_GameObject.SetMaterialType(DrawableGameObject::material_NormalMapped);
         CleanupDevice();
         InitDevice();
     }
     if (charTyped == 'i')
     {
-        colourInversion = !colourInversion;
+        m_ColourInversion = !m_ColourInversion;
+    }
+    if (charTyped == 'y')
+    {
+        m_GameObject.SetIsSpinning(true);
+    }
+    if (charTyped == 'u')
+    {
+        m_GameObject.SetIsSpinning(false);
     }
 }
 
